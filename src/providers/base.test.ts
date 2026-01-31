@@ -1,5 +1,10 @@
-import { describe, it, expect } from "bun:test";
-import type { Provider, ProviderConfig, UsageStats, ModelMapping } from "./base";
+import { describe, expect, it } from "bun:test";
+import type {
+  ModelMapping,
+  Provider,
+  ProviderConfig,
+  UsageStats,
+} from "./base";
 
 describe("Provider interfaces", () => {
   describe("ProviderConfig", () => {

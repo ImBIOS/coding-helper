@@ -1,8 +1,5 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import {
-  MiniMaxProvider,
-  minimaxProvider,
-} from "./minimax";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { MiniMaxProvider, minimaxProvider } from "./minimax";
 
 describe("MiniMaxProvider", () => {
   let provider: MiniMaxProvider;
@@ -116,7 +113,7 @@ describe("MiniMaxProvider", () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = (() => {
         throw new Error("Network error");
-      }) as typeof fetch;
+      }) as unknown as typeof fetch;
 
       const result = await provider.testConnection();
       expect(result).toBe(false);
@@ -146,7 +143,9 @@ describe("MiniMaxProvider", () => {
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = (() =>
-        Promise.resolve(mockResponse as unknown as Response)) as typeof fetch;
+        Promise.resolve(
+          mockResponse as unknown as Response
+        )) as unknown as typeof fetch;
 
       const usage = await provider.getUsage();
 
@@ -167,7 +166,9 @@ describe("MiniMaxProvider", () => {
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = (() =>
-        Promise.resolve(mockResponse as unknown as Response)) as typeof fetch;
+        Promise.resolve(
+          mockResponse as unknown as Response
+        )) as unknown as typeof fetch;
 
       const usage = await provider.getUsage();
 

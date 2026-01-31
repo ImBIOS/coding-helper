@@ -241,6 +241,7 @@ export function rotateApiKey(
 export function checkAlerts(usage: {
   used: number;
   limit: number;
+  remaining?: number;
 }): AlertConfig[] {
   const config = loadConfigV2();
   const triggered: AlertConfig[] = [];
@@ -253,7 +254,7 @@ export function checkAlerts(usage: {
     if (alert.type === "usage" && percentUsed >= alert.threshold) {
       triggered.push(alert);
     }
-    if (alert.type === "quota" && usage.remaining <= alert.threshold) {
+    if (alert.type === "quota" && (usage.remaining ?? 0) <= alert.threshold) {
       triggered.push(alert);
     }
   }

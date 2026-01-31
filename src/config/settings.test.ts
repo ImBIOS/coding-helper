@@ -1,10 +1,10 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-  loadConfig,
+  getActiveProvider,
   getConfigDir,
   getConfigPath,
-  getActiveProvider,
   getUsageHistory,
+  loadConfig,
 } from "./settings";
 
 describe("settings", () => {

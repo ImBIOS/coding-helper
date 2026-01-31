@@ -1,3 +1,4 @@
+import * as mcp from "../config/mcp";
 import * as profiles from "../config/profiles";
 import * as settings from "../config/settings";
 import * as v2 from "../config/v2";
@@ -767,6 +768,243 @@ Examples:
   }
 }
 
+export async function handleMcp(args: string[]): Promise<void> {
+  const action = args[0] as string | undefined;
+
+  switch (action) {
+    case "list": {
+      section("MCP Servers");
+      const servers = mcp.listMcpServers();
+
+      if (servers.length === 0) {
+        info("No MCP servers configured.");
+        info("Use 'imbios mcp add' to add a server.");
+        return;
+      }
+
+      const enabledCount = servers.filter((s) => s.enabled).length;
+
+      console.log(`  Total: ${servers.length} | Enabled: ${enabledCount}\n`);
+
+      servers.forEach((server) => {
+        const status = server.enabled ? "●" : "○";
+        const provider = server.provider || "all";
+        console.log(
+          `  ${status} ${server.name} [${provider}] ${server.enabled ? "" : "(disabled)"}`
+        );
+        console.log(`      ${server.command} ${server.args.join(" ")}`);
+        if (server.description) {
+          console.log(`      ${server.description}`);
+        }
+      });
+      break;
+    }
+
+    case "add": {
+      section("Add MCP Server");
+
+      const name = await input("Server name:");
+      if (!name) {
+        error("Server name is required.");
+        return;
+      }
+
+      const command = await input("Command:", "npx");
+      if (!command) {
+        error("Command is required.");
+        return;
+      }
+
+      const argsInput = await input("Arguments (space-separated):", "-y");
+      const argsList = argsInput.split(" ").filter((a) => a);
+
+      const provider = await select("Provider:", ["all", "zai", "minimax"], 0);
+      const description = await input("Description (optional):", "");
+
+      mcp.addMcpServer(name, command, argsList, {
+        description,
+        provider: provider as "zai" | "minimax" | "all",
+      });
+
+      success(`MCP server "${name}" added successfully!`);
+      info(`Run 'imbios mcp enable ${name}' to enable it.`);
+      break;
+    }
+
+    case "remove": {
+      const name = args[1];
+      if (!name) {
+        error("Usage: imbios mcp remove <name>");
+        return;
+      }
+
+      if (mcp.deleteMcpServer(name)) {
+        success(`MCP server "${name}" removed.`);
+      } else {
+        error(`MCP server "${name}" not found.`);
+      }
+      break;
+    }
+
+    case "enable": {
+      const name = args[1];
+      if (!name) {
+        error("Usage: imbios mcp enable <name>");
+        return;
+      }
+
+      if (mcp.toggleMcpServer(name, true)) {
+        success(`MCP server "${name}" enabled.`);
+      } else {
+        error(`MCP server "${name}" not found.`);
+      }
+      break;
+    }
+
+    case "disable": {
+      const name = args[1];
+      if (!name) {
+        error("Usage: imbios mcp disable <name>");
+        return;
+      }
+
+      if (mcp.toggleMcpServer(name, false)) {
+        success(`MCP server "${name}" disabled.`);
+      } else {
+        error(`MCP server "${name}" not found.`);
+      }
+      break;
+    }
+
+    case "add-predefined": {
+      const provider = args[1] as "zai" | "minimax" | undefined;
+
+      if (!(provider && ["zai", "minimax"].includes(provider))) {
+        error("Usage: imbios mcp add-predefined <zai|minimax>");
+        return;
+      }
+
+      mcp.addPredefinedServers(provider);
+
+      const predefined =
+        provider === "zai" ? mcp.ZAI_MCP_SERVERS : mcp.MINIMAX_MCP_SERVERS;
+      const serverCount = Object.keys(predefined).length;
+
+      success(
+        `Added ${serverCount} predefined ${provider.toUpperCase()} MCP servers.`
+      );
+      info(
+        "Use 'imbios mcp list' to see them, then 'imbios mcp enable <name>' to enable."
+      );
+      break;
+    }
+
+    case "export": {
+      const format = args[1] || "env";
+
+      if (format === "env") {
+        console.log(mcp.generateMcpEnvExport());
+        info("Run 'eval \"$(imbios mcp export env)\"' to apply.");
+      } else if (format === "claude") {
+        console.log(mcp.generateClaudeDesktopConfig());
+        info("Save this to ~/.config/claude/mcp.json for Claude Desktop.");
+      } else {
+        error(`Unknown format: ${format}. Use 'env' or 'claude'.`);
+      }
+      break;
+    }
+
+    case "test": {
+      const name = args[1];
+      if (!name) {
+        error("Usage: imbios mcp test <name>");
+        return;
+      }
+
+      const server = mcp.getMcpServer(name);
+      if (!server) {
+        error(`MCP server "${name}" not found.`);
+        return;
+      }
+
+      section(`Testing MCP Server: ${name}`);
+
+      const { spawn } = require("node:child_process");
+
+      info(`Running: ${server.command} ${server.args.join(" ")}`);
+
+      const child = spawn(server.command, server.args, {
+        env: { ...process.env, ...mcp.getMcpEnvForServer(name) },
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      let stdout = "";
+      let stderr = "";
+
+      child.stdout?.on("data", (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      child.stderr?.on("data", (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (code: number) => {
+        if (code === 0) {
+          success("Server started successfully!");
+          if (stdout) {
+            info("Output:");
+            console.log(stdout);
+          }
+        } else {
+          error(`Server exited with code ${code}`);
+          if (stderr) {
+            warning("Stderr:");
+            console.log(stderr);
+          }
+        }
+      });
+
+      child.on("error", (err: Error) => {
+        error(`Failed to start server: ${err.message}`);
+      });
+
+      // Kill after 10 seconds
+      setTimeout(() => {
+        child.kill();
+        if (stdout || stderr) {
+          info("Server test completed (timeout).");
+        }
+      }, 10_000);
+      break;
+    }
+
+    default:
+      console.log(`
+ImBIOS MCP Server Management v1.0.0
+
+Usage: imbios mcp <command> [options]
+
+Commands:
+  list                    List all configured MCP servers
+  add                     Add a new MCP server
+  remove <name>           Remove an MCP server
+  enable <name>           Enable an MCP server
+  disable <name>          Disable an MCP server
+  add-predefined <p>     Add predefined servers for provider (zai|minimax)
+  export [env|claude]     Export configuration (env vars or Claude Desktop JSON)
+  test <name>             Test an MCP server connection
+
+Examples:
+  imbios mcp list
+  imbios mcp add
+  imbios mcp enable zai-vision
+  imbios mcp add-predefined zai
+  eval "$(imbios mcp export env)"
+`);
+  }
+}
+
 export async function handleHelp(): Promise<void> {
   console.log(`
 ImBIOS - Z.AI & MiniMax Provider Manager v2.0.0
@@ -791,6 +1029,7 @@ Commands:
   rotate <provider>   Rotate to next API key (v2.0)
   dashboard <cmd>     Web dashboard management (v2.0)
   alert <cmd>         Alert configuration (v2.0)
+  mcp <cmd>           MCP server management (v1.0)
   help                Show this help message
   version             Show version
 
@@ -800,6 +1039,7 @@ Examples:
   imbios account add work    # Add work account
   imbios rotate zai          # Rotate Z.AI key
   imbios dashboard start     # Start web dashboard
+  imbios mcp add-predefined zai  # Add Z.AI MCP servers
   eval "$(imbios env export)"  # Export env vars
 
 For more info, visit: https://github.com/imbios/coding-helper

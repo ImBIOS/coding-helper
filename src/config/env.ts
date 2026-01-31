@@ -61,3 +61,13 @@ export function loadEnvVars(): Record<string, string> {
 
   return vars;
 }
+
+// Load environment variables into process.env
+export function loadEnv(): void {
+  const vars = loadEnvVars();
+  for (const [key, value] of Object.entries(vars)) {
+    if (!process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+}

@@ -1,0 +1,3 @@
+import { handleAccount, handleAlert, handleCompletion, handleConfig, handleCost, handleDashboard, handleDoctor, handleEnv, handleHelp, handleHistory, handleModels, handlePlugin, handleProfile, handleRotate, handleStatus, handleSwitch, handleTest, handleUsage, handleVersion } from "./index.js";
+export { handleAccount, handleAlert, handleCompletion, handleConfig, handleCost, handleDashboard, handleDoctor, handleEnv, handleHelp, handleHistory, handleModels, handlePlugin, handleProfile, handleRotate, handleStatus, handleSwitch, handleTest, handleUsage, handleVersion, };
+export declare function loadCommand(command: string, args: string[]): Promise<void>;

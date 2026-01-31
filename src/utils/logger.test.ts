@@ -1,15 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "bun:test";
+import { describe, expect, it, vi } from "bun:test";
 import {
-  log,
-  success,
-  info,
-  warning,
-  error,
   debug,
-  table,
-  section,
   divider,
-  type LogLevel,
+  error,
+  info,
+  log,
+  section,
+  success,
+  table,
+  warning,
 } from "./logger";
 
 describe("logger", () => {

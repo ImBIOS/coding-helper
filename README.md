@@ -95,7 +95,6 @@ After installation, use slash commands in Claude Code:
 |-------|------|----------|
 | `GLM-4.7` | Opus | Most capable, complex tasks |
 | `GLM-4.5-Air` | Haiku | Fast, efficient responses |
-| `GLM-4.5-Air-X` | Sonnet | Balanced performance |
 
 ### MiniMax
 

@@ -1,3 +1,26 @@
+import {
+  handleAccount,
+  handleAlert,
+  handleCompletion,
+  handleConfig,
+  handleCost,
+  handleDashboard,
+  handleDoctor,
+  handleEnv,
+  handleHelp,
+  handleHistory,
+  handleMcp,
+  handleModels,
+  handlePlugin,
+  handleProfile,
+  handleRotate,
+  handleStatus,
+  handleSwitch,
+  handleTest,
+  handleUsage,
+  handleVersion,
+} from "./index.js";
+
 export {
   handleAccount,
   handleAlert,
@@ -9,6 +32,7 @@ export {
   handleEnv,
   handleHelp,
   handleHistory,
+  handleMcp,
   handleModels,
   handlePlugin,
   handleProfile,
@@ -18,12 +42,12 @@ export {
   handleTest,
   handleUsage,
   handleVersion,
-} from "./index";
+};
 
 const COMMANDS: Record<string, (args?: string[]) => Promise<void>> = {
   config: handleConfig,
   completion: (args) => handleCompletion(args?.[0]),
-  switch: (args) => handleSwitch(args),
+  switch: (args) => handleSwitch(args ?? []),
   status: handleStatus,
   usage: handleUsage,
   history: handleHistory,
@@ -33,11 +57,12 @@ const COMMANDS: Record<string, (args?: string[]) => Promise<void>> = {
   doctor: handleDoctor,
   env: (args) => handleEnv(args?.[0]),
   models: (args) => handleModels(args?.[0]),
-  profile: (args) => handleProfile(args),
-  account: (args) => handleAccount(args),
-  rotate: (args) => handleRotate(args),
-  dashboard: (args) => handleDashboard(args),
-  alert: (args) => handleAlert(args),
+  profile: (args) => handleProfile(args ?? []),
+  account: (args) => handleAccount(args ?? []),
+  rotate: (args) => handleRotate(args ?? []),
+  dashboard: (args) => handleDashboard(args ?? []),
+  alert: (args) => handleAlert(args ?? []),
+  mcp: (args) => handleMcp(args ?? []),
   help: handleHelp,
   version: handleVersion,
 };

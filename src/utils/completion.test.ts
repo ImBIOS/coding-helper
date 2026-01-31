@@ -1,7 +1,7 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-  getShellCompletion,
   getAllCompletions,
+  getShellCompletion,
   installCompletion,
   SHELLS,
 } from "./completion";

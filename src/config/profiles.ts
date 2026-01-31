@@ -1,3 +1,6 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
+
 export interface ProfileConfig {
   name: string;
   provider: "zai" | "minimax";
@@ -34,8 +37,6 @@ export function getProfilesPath(): string {
 
 export function loadProfiles(): ImBIOSConfig {
   try {
-    const fs = await import('node:fs');
-    const path = await import('node:path');
     const configPath = getProfilesPath();
 
     if (fs.existsSync(configPath)) {
@@ -49,9 +50,8 @@ export function loadProfiles(): ImBIOSConfig {
 }
 
 export function saveProfiles(config: ImBIOSConfig): void {
-  const fs = require("node:fs");
   const configPath = getProfilesPath();
-  const configDir = require("node:path").dirname(configPath);
+  const configDir = path.dirname(configPath);
 
   if (!fs.existsSync(configDir)) {
     fs.mkdirSync(configDir, { recursive: true });

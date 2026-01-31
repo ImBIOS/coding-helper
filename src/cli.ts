@@ -21,7 +21,7 @@ const CLIController = async () => {
   };
 
   try {
-    const { default: loadCommand } = await import("./commands/index.js");
+    const { loadCommand } = await import("./commands/loader.js");
     await loadCommand(command, args.slice(1));
   } catch (error: unknown) {
     if (

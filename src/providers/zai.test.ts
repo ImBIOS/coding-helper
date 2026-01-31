@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { ZAIProvider, zaiProvider } from "./zai";
 
 describe("ZAIProvider", () => {
@@ -122,7 +122,7 @@ describe("ZAIProvider", () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = (() => {
         throw new Error("Network error");
-      }) as typeof fetch;
+      }) as unknown as typeof fetch;
 
       const result = await provider.testConnection();
       expect(result).toBe(false);
@@ -140,7 +140,9 @@ describe("ZAIProvider", () => {
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = (() =>
-        Promise.resolve(mockResponse as unknown as Response)) as typeof fetch;
+        Promise.resolve(
+          mockResponse as unknown as Response
+        )) as unknown as typeof fetch;
 
       const result = await provider.testConnection();
       expect(result).toBe(true);
@@ -170,7 +172,9 @@ describe("ZAIProvider", () => {
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = (() =>
-        Promise.resolve(mockResponse as unknown as Response)) as typeof fetch;
+        Promise.resolve(
+          mockResponse as unknown as Response
+        )) as unknown as typeof fetch;
 
       const usage = await provider.getUsage();
 
@@ -191,7 +195,9 @@ describe("ZAIProvider", () => {
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = (() =>
-        Promise.resolve(mockResponse as unknown as Response)) as typeof fetch;
+        Promise.resolve(
+          mockResponse as unknown as Response
+        )) as unknown as typeof fetch;
 
       const usage = await provider.getUsage();
 
@@ -214,7 +220,9 @@ describe("ZAIProvider", () => {
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = (() =>
-        Promise.resolve(mockResponse as unknown as Response)) as typeof fetch;
+        Promise.resolve(
+          mockResponse as unknown as Response
+        )) as unknown as typeof fetch;
 
       const usage = await provider.getUsage();
 
@@ -236,7 +244,9 @@ describe("ZAIProvider", () => {
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = (() =>
-        Promise.resolve(mockResponse as unknown as Response)) as typeof fetch;
+        Promise.resolve(
+          mockResponse as unknown as Response
+        )) as unknown as typeof fetch;
 
       const usage = await provider.getUsage();
 

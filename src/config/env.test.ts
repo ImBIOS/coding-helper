@@ -1,11 +1,5 @@
-import { describe, it, expect } from "bun:test";
-import * as path from "node:path";
-import {
-  getEnvPath,
-  exportEnvVars,
-  writeEnvVars,
-  loadEnvVars,
-} from "./env";
+import { describe, expect, it } from "bun:test";
+import { exportEnvVars, getEnvPath } from "./env";
 
 describe("env", () => {
   describe("getEnvPath", () => {
@@ -46,7 +40,8 @@ describe("env", () => {
 
   describe("loadEnvVars", () => {
     it("should parse quoted values correctly", () => {
-      const input = 'ANTHROPIC_AUTH_TOKEN="test-key"\nANTHROPIC_MODEL="model-name"';
+      const input =
+        'ANTHROPIC_AUTH_TOKEN="test-key"\nANTHROPIC_MODEL="model-name"';
       const lines = input.split("\n");
       const vars: Record<string, string> = {};
 
@@ -55,9 +50,7 @@ describe("env", () => {
         if (trimmed && !trimmed.startsWith("#")) {
           const [key, ...valueParts] = trimmed.split("=");
           if (key && valueParts.length > 0) {
-            vars[key.trim()] = valueParts
-              .join("=")
-              .replace(/^["']|["']$/g, "");
+            vars[key.trim()] = valueParts.join("=").replace(/^["']|["']$/g, "");
           }
         }
       });
@@ -76,9 +69,7 @@ describe("env", () => {
         if (trimmed && !trimmed.startsWith("#")) {
           const [key, ...valueParts] = trimmed.split("=");
           if (key && valueParts.length > 0) {
-            vars[key.trim()] = valueParts
-              .join("=")
-              .replace(/^["']|["']$/g, "");
+            vars[key.trim()] = valueParts.join("=").replace(/^["']|["']$/g, "");
           }
         }
       });
@@ -96,9 +87,7 @@ describe("env", () => {
         if (trimmed && !trimmed.startsWith("#")) {
           const [key, ...valueParts] = trimmed.split("=");
           if (key && valueParts.length > 0) {
-            vars[key.trim()] = valueParts
-              .join("=")
-              .replace(/^["']|["']$/g, "");
+            vars[key.trim()] = valueParts.join("=").replace(/^["']|["']$/g, "");
           }
         }
       });

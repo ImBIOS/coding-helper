@@ -1,0 +1,10 @@
+export type LogLevel = "info" | "success" | "warning" | "error" | "debug";
+export declare function log(message: string, level?: LogLevel): void;
+export declare function success(message: string): void;
+export declare function info(message: string): void;
+export declare function warning(message: string): void;
+export declare function error(message: string): void;
+export declare function debug(message: string): void;
+export declare function table(data: Record<string, string | number>): void;
+export declare function section(title: string): void;
+export declare function divider(): void;

@@ -1,4 +1,6 @@
 [test]
 # To require 50% line-level and function-level coverage
-# We're not keeping code, we're keeping behavior and expectations
+# Don't cover too much, we're not keeping code,
+# we're keeping behavior and expectations.
+# Tests should survive refactoring.
 coverageThreshold = 0.5
