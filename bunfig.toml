@@ -1,0 +1,4 @@
+[test]
+# To require 75% line-level and function-level coverage
+# We're not keeping code, we're keeping behavior and expectations
+coverageThreshold = 0.75

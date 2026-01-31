@@ -1,0 +1,44 @@
+{
+  "name": "@imbios/coding-helper",
+  "description": "CLI tool and Claude Code plugin for switching between Z.AI (GLM) and MiniMax API providers",
+  "version": "2.0.0",
+  "author": {
+    "name": "Imamuzzaki Abu Salam",
+    "email": "imamuzzaki@gmail.com",
+    "url": "https://github.com/ImBIOS"
+  },
+  "bin": {
+    "imbios": "./bin/imbios.js"
+  },
+  "dependencies": {
+    "ansi-colors": "^1.1.0",
+    "inquirer": "^10.2.2",
+    "jsonc": "^2.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.8",
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^22.19.7",
+    "typescript": "^5.9.3"
+  },
+  "keywords": [
+    "anthropic",
+    "api",
+    "claude-code",
+    "cli",
+    "glm",
+    "minimax"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "dev": "bun src/cli.ts",
+    "format:ws": "bun x syncpack@alpha format",
+    "link": "npm link",
+    "postinstall": "bun run format:ws",
+    "prepare": "husky",
+    "test": "bun src/cli.ts test"
+  },
+  "type": "module"
+}

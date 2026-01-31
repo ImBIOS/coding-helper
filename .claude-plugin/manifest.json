@@ -1,0 +1,37 @@
+{
+  "name": "@imbios/coding-helper",
+  "version": "1.0.0",
+  "description": "Switch between Z.AI (GLM) and MiniMax API providers for Claude Code",
+  "commands": [
+    {
+      "name": "status",
+      "description": "Show current provider and API status"
+    },
+    {
+      "name": "usage",
+      "description": "Query usage for active provider"
+    },
+    {
+      "name": "switch",
+      "description": "Switch between providers (zai/minimax)",
+      "args": [
+        {
+          "name": "provider",
+          "required": true,
+          "description": "Provider to switch to (zai or minimax)"
+        }
+      ]
+    },
+    {
+      "name": "models",
+      "description": "List available models for each provider"
+    },
+    {
+      "name": "test",
+      "description": "Test API connection for current provider"
+    }
+  ],
+  "engines": {
+    "claude-code": ">=1.0.0"
+  }
+}
