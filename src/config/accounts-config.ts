@@ -335,13 +335,11 @@ export function configureRotation(
  * Fetch real usage data from provider API and update account config
  * This ensures least-used rotation uses accurate, up-to-date data
  *
- * For rotation comparison:
- * - ZAI: Uses MCP usage percentage (mcpUsage.percentUsed) for MCP rotation
- * - MiniMax: Uses usage percentage (same as model/MCP usage for MiniMax)
+ * For rotation comparison, uses the DISPLAYED percentage:
+ * - ZAI: Uses MCP usage percentage (mcpUsage.percentUsed)
+ * - MiniMax: Uses remaining percentage (percentRemaining) - what's displayed
  *
- * This ensures MCP usage is balanced across providers since:
- * - MiniMax: model and MCP share the same quota
- * - ZAI: model and MCP have separate quotas
+ * This ensures rotation matches what the user sees in `cohe usage`
  */
 async function fetchAndUpdateUsage(account: AccountConfig): Promise<number> {
   try {
@@ -367,13 +365,14 @@ async function fetchAndUpdateUsage(account: AccountConfig): Promise<number> {
         },
       });
 
-      // For rotation, use MCP usage percentage
-      // ZAI: use mcpUsage.percentUsed (MCP rotation)
-      // MiniMax: use percentUsed (model/MCP combined)
+      // For rotation, use the DISPLAYED percentage (matches `cohe usage`)
+      // ZAI: use mcpUsage.percentUsed (35% displayed)
+      // MiniMax: use percentRemaining (0% displayed when full)
       if (account.provider === "zai" && usage.mcpUsage) {
         return usage.mcpUsage.percentUsed;
       }
-      return usage.percentUsed;
+      // MiniMax: use displayed percentage (percentRemaining if available)
+      return usage.percentRemaining ?? usage.percentUsed;
     }
   } catch {
     // Silently fail and fall back to cached usage
