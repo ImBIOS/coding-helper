@@ -159,46 +159,53 @@ export async function handleUsage(verbose = false): Promise<void> {
     });
 
     const isActive = config.activeAccountId === account.id;
-    const activeMark = isActive ? " [Active]" : "";
+    const activeMark = isActive ? " →" : "  ";
+    const accountStatus = isActive ? " [Active provider]" : "";
 
-    console.log(`${account.name} (${account.provider})${activeMark}`);
+    console.log(
+      `${activeMark} ${account.name} (${account.provider})${accountStatus}`
+    );
 
     // Warning for missing groupId on MiniMax
     if (account.provider === "minimax" && !account.groupId) {
-      console.log("  ⚠️  Missing groupId - usage data may be incomplete");
+      console.log("     ⚠️  Missing groupId - usage data may be incomplete");
     }
 
     if (usage.limit > 0) {
       // For ZAI, show model and MCP usage separately
       if (account.provider === "zai" && usage.modelUsage && usage.mcpUsage) {
-        console.log(`  Model:  ${Math.round(usage.modelUsage.percentUsed)}%`);
-        console.log(`  MCP:    ${Math.round(usage.mcpUsage.percentUsed)}%`);
+        console.log(`     Model: ${Math.round(usage.modelUsage.percentUsed)}%`);
+        console.log(`     MCP:   ${Math.round(usage.mcpUsage.percentUsed)}%`);
 
         // Show details in verbose mode
         if (verbose) {
-          console.log("  Model:");
-          console.log(`    Used:      ${Math.round(usage.modelUsage.used)}`);
-          console.log(`    Limit:     ${Math.round(usage.modelUsage.limit)}`);
+          console.log("     Model:");
+          console.log(`       Used:      ${Math.round(usage.modelUsage.used)}`);
           console.log(
-            `    Remaining: ${Math.round(usage.modelUsage.remaining)}`
+            `       Limit:     ${Math.round(usage.modelUsage.limit)}`
+          );
+          console.log(
+            `       Remaining: ${Math.round(usage.modelUsage.remaining)}`
           );
 
-          console.log("  MCP:");
-          console.log(`    Used:      ${Math.round(usage.mcpUsage.used)}`);
-          console.log(`    Limit:     ${Math.round(usage.mcpUsage.limit)}`);
-          console.log(`    Remaining: ${Math.round(usage.mcpUsage.remaining)}`);
+          console.log("     MCP:");
+          console.log(`       Used:      ${Math.round(usage.mcpUsage.used)}`);
+          console.log(`       Limit:     ${Math.round(usage.mcpUsage.limit)}`);
+          console.log(
+            `       Remaining: ${Math.round(usage.mcpUsage.remaining)}`
+          );
         }
       } else {
         // For MiniMax or when no split data available
         // MiniMax shows percentRemaining (what's left), not percentUsed
         const displayPercent = usage.percentRemaining ?? usage.percentUsed;
-        console.log(`  Usage: ${Math.round(displayPercent)}%`);
+        console.log(`     Usage: ${Math.round(displayPercent)}%`);
 
         // Show details in verbose mode
         if (verbose) {
-          console.log(`  Used:      ${Math.round(usage.used)}`);
-          console.log(`  Limit:     ${Math.round(usage.limit)}`);
-          console.log(`  Remaining: ${Math.round(usage.remaining)}`);
+          console.log(`     Used:      ${Math.round(usage.used)}`);
+          console.log(`     Limit:     ${Math.round(usage.limit)}`);
+          console.log(`     Remaining: ${Math.round(usage.remaining)}`);
         }
       }
 
