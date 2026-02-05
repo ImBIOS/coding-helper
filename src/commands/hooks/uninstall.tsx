@@ -31,7 +31,7 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
       // Update settings.json to remove hook configuration
       if (fs.existsSync(settingsFilePath)) {
         const content = fs.readFileSync(settingsFilePath, "utf-8");
-        let settings: any;
+        let settings: Record<string, unknown>;
 
         try {
           settings = JSON.parse(content);
@@ -40,33 +40,37 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
         }
 
         if (settings.hooks?.SessionStart) {
-          const originalLength = settings.hooks.SessionStart.length;
+          const originalLength = (settings.hooks.SessionStart as unknown[])
+            .length;
 
           // Filter out our auto-rotate hook
-          settings.hooks.SessionStart = settings.hooks.SessionStart.filter(
-            (hookConfig: any) => {
-              if (hookConfig.type !== "command") {
-                return true;
-              }
-              if (!hookConfig.command) {
-                return true;
-              }
-
-              // Remove if it's our auto-rotate hook (either old bash script or new cohe command)
-              return !(
-                hookConfig.command === hookScriptPath ||
-                hookConfig.command.includes("auto-rotate.sh") ||
-                hookConfig.command.includes("auto hook") ||
-                hookConfig.command === "cohe auto hook --silent"
-              );
+          // biome-ignore lint/suspicious/noExplicitAny: Settings object structure is dynamic from Claude settings.json
+          settings.hooks.SessionStart = (
+            settings.hooks.SessionStart as unknown[]
+          ).filter((hookConfig) => {
+            if (hookConfig.type !== "command") {
+              return true;
             }
-          );
+            if (!hookConfig.command) {
+              return true;
+            }
 
-          if (settings.hooks.SessionStart.length !== originalLength) {
+            // Remove if it's our auto-rotate hook (either old bash script or new cohe command)
+            return !(
+              hookConfig.command === hookScriptPath ||
+              hookConfig.command.includes("auto-rotate.sh") ||
+              hookConfig.command.includes("auto hook") ||
+              hookConfig.command === "cohe auto hook --silent"
+            );
+          });
+
+          if (
+            (settings.hooks.SessionStart as unknown[]).length !== originalLength
+          ) {
             settingsModified = true;
 
             // Clean up empty SessionStart array
-            if (settings.hooks.SessionStart.length === 0) {
+            if ((settings.hooks.SessionStart as unknown[]).length === 0) {
               settings.hooks.SessionStart = undefined;
 
               // Clean up empty hooks object

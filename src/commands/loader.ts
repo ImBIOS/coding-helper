@@ -1,3 +1,4 @@
+// biome-ignore lint/style/noExportedImports: Re-exporting handlers from index.js for dynamic CLI command loading
 import {
   handleAccount,
   handleAlert,
@@ -25,6 +26,7 @@ import {
   handleVersion,
 } from "./index.js";
 
+// biome-ignore lint/style/noExportedImports: Re-exporting handlers from index.js for dynamic CLI command loading
 export {
   handleAccount,
   handleAlert,
