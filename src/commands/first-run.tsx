@@ -1,13 +1,13 @@
-import { ConfirmInput, MultiSelect, PasswordInput, TextInput } from "@inkjs/ui";
-import { Box, Text, useApp } from "ink";
-import { useState } from "react";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { BaseCommand } from "../oclif/base";
-import * as settings from "../config/settings.js";
+import { ConfirmInput, MultiSelect, PasswordInput, TextInput } from "@inkjs/ui";
+import { Box, Text, useApp } from "ink";
+import { useState } from "react";
 import * as accountsConfig from "../config/accounts-config.js";
 import { loadConfigV2 } from "../config/accounts-config.js";
+import * as settings from "../config/settings.js";
+import { BaseCommand } from "../oclif/base";
 import { Info, Section, Success, Warning } from "../ui/index.js";
 import { getContainerEnvVars } from "../utils/container.js";
 
@@ -125,7 +125,10 @@ function FirstRunUI(): React.ReactElement {
     if (nextIndex < selectedProviders.length) {
       setCurrentProviderIndex(nextIndex);
       setCurrentSetup({});
-      addMessage("info", `Configuring ${selectedProviders[nextIndex].toUpperCase()}...`);
+      addMessage(
+        "info",
+        `Configuring ${selectedProviders[nextIndex].toUpperCase()}...`
+      );
       setStep("enter-api-key");
     } else {
       setStep("confirm-hooks");
@@ -312,8 +315,8 @@ exit 0
             <Text>Welcome to cohe! Let's get you set up.</Text>
             <Box marginTop={1}>
               <Text color="gray">
-                This wizard will help you configure your API providers and set up
-                Claude Code hooks.
+                This wizard will help you configure your API providers and set
+                up Claude Code hooks.
               </Text>
             </Box>
             <Box marginTop={1}>
@@ -381,9 +384,7 @@ exit 0
               <Text>• Auto-rotation of API keys on session start</Text>
             </Box>
             <Box marginLeft={2}>
-              <Text>
-                • Notifications with task details when sessions end
-              </Text>
+              <Text>• Notifications with task details when sessions end</Text>
             </Box>
             <Box marginTop={1}>
               <Text>Install hooks? </Text>
@@ -415,12 +416,14 @@ exit 0
               <Text bold>What was configured:</Text>
             </Box>
             <Box marginLeft={2}>
-              <Text>• Providers: {completedProviders.map((p) => p.toUpperCase()).join(", ") || "None"}</Text>
+              <Text>
+                • Providers:{" "}
+                {completedProviders.map((p) => p.toUpperCase()).join(", ") ||
+                  "None"}
+              </Text>
             </Box>
             <Box marginLeft={2}>
-              <Text>
-                • Hooks: {hooksInstalled ? "Installed" : "Skipped"}
-              </Text>
+              <Text>• Hooks: {hooksInstalled ? "Installed" : "Skipped"}</Text>
             </Box>
             {completedProviders.length > 0 && (
               <>

@@ -56,12 +56,14 @@
     "@oclif/core": "^4.8.0",
     "ink": "^6.6.0",
     "jsonc": "^2.0.0",
-    "node-fetch": "^3.3.2",
     "react": "^19.2.4",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.13",
+    "@happy-dom/global-registrator": "^20.5.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/bun": "^1.3.8",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.4",
@@ -79,7 +81,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "bundle": "bun build src/cli.ts --outfile=bin/cohe.bundled.js --target=node --packages=external",
+    "build": "bun build src/cli.ts --outfile=bin/cohe.bundled.js --target=node --packages=external",
     "dev": "bun --hot src/cli.ts",
     "format:ws": "bun x syncpack@alpha format",
     "link": "npm link",

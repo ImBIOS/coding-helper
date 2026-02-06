@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { ConfirmInput, MultiSelect, TextInput } from "@inkjs/ui";
 import { Box, Text, useApp } from "ink";
 import { useState } from "react";
-import { ConfirmInput, MultiSelect, TextInput } from "@inkjs/ui";
 import { BaseCommand } from "../../oclif/base.js";
 import { Error, Info, Section, Success, Warning } from "../../ui/index.js";
 

@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { ConfirmInput, TextInput } from "@inkjs/ui";
 import { Box, Text, useApp } from "ink";
 import { useState } from "react";
-import { ConfirmInput, TextInput } from "@inkjs/ui";
 import { BaseCommand } from "../../oclif/base.js";
 import { Section } from "../../ui/index.js";
 
@@ -108,9 +108,7 @@ function ProjectDoctorUI(): React.ReactElement {
         message: hasNodeModules
           ? "node_modules found"
           : "node_modules not found - dependencies may need installation",
-        fix: hasNodeModules
-          ? undefined
-          : "Run 'bun install' or 'npm install'",
+        fix: hasNodeModules ? undefined : "Run 'bun install' or 'npm install'",
       });
     }
 
@@ -187,7 +185,7 @@ function ProjectDoctorUI(): React.ReactElement {
 
       // Customize template with project name
       const projectName = path.basename(projectPath);
-      let claudeMdContent = templateContent.replace(
+      const claudeMdContent = templateContent.replace(
         /# `projectName`'/s,
         `# \`${projectName}\`'`
       );
@@ -286,7 +284,7 @@ function ProjectDoctorUI(): React.ReactElement {
             </Box>
 
             {/* Health Check Results */}
-            <Box marginTop={1} flexDirection="column">
+            <Box flexDirection="column" marginTop={1}>
               {healthChecks.map((check, index) => (
                 <Box flexDirection="column" key={index} marginBottom={1}>
                   <Box flexDirection="row" gap={1}>
@@ -315,7 +313,9 @@ function ProjectDoctorUI(): React.ReactElement {
             {/* Auto-fix for missing CLAUDE.md */}
             {failedCount > 0 && (
               <Box marginTop={1}>
-                <Text>{failedCount > 0 ? `Found ${failedCount} issue(s). ` : ""}</Text>
+                <Text>
+                  {failedCount > 0 ? `Found ${failedCount} issue(s). ` : ""}
+                </Text>
                 {healthChecks.find(
                   (c) => c.name === "CLAUDE.md exists" && c.status === "fail"
                 ) && (

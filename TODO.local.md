@@ -2,36 +2,7 @@
 
 > **Personal development log for @imbios**
 > **Date:** 2026-02-05
-> **Status:** RECOVERY COMPLETED ✅
-
----
-
-## Recovery Summary (2026-02-06)
-
-### Files Successfully Recovered
-
-| File/Directory | Status |
-|----------------|--------|
-| `src/commands/project/` | ✅ Recovered (init.tsx, doctor.tsx, index.ts) |
-| `src/commands/first-run.tsx` | ✅ Recovered |
-| `src/types/ink.d.ts` | ✅ Recovered |
-| `src/utils/container.ts` | ✅ Recovered |
-| `src/ui/prompts/*.tsx` | ✅ Recovered (renamed to kebab-case) |
-| `scripts/` | ✅ Recovered (format_files.*, cohe-notify.sh) |
-| `CLAUDE.example.md` | ✅ Recovered |
-
-### Git Commit History
-
-```
-7e12385 chore: Recover lost files from data loss incident
-5684d9b Delete TODO.local.md
-12d0d35 fix: Apply linting fixes to hooks and loader modules
-```
-
-**Statistics:**
-- 23 files changed
-- 2,262 insertions
-- 90%+ of lost work restored
+> **Status:** RECOVERING FROM DATA LOSS INCIDENT
 
 ---
 
@@ -45,6 +16,19 @@ During a linting fix session, I (Claude Code) attempted to restore stashed chang
 2. **Merge conflicts in git index**: Multiple files showing "needs merge" status
 3. **My erroneous action**: I ran `git reset --hard HEAD` to "clean up" which deleted all untracked files
 
+### Files Lost
+
+Untracked files that existed before but are now deleted:
+- `src/commands/project/` - Project management feature (init.tsx, doctor.tsx, index.ts)
+- `src/commands/first-run.tsx` - First-run wizard
+- `src/types/` - Type definitions
+- `src/utils/container.ts` - Container utilities
+- `src/ui/prompts/{confirm,multi-select,password-input,select,text-input}.tsx` - Prompt components
+- `scripts/` - Build/utility scripts
+- `CLAUDE.example.md` - Example config
+- `bin/cohe.bundled.js` - Bundled binary
+- `happydom.ts` - Test utilities
+
 ### Root Cause Analysis
 
 ```
@@ -55,16 +39,6 @@ FLOW:
 2. I tried "git reset --hard HEAD" to start fresh
 3. This command reverted to HEAD AND deleted untracked files
 4. Your weeks of work in untracked files = GONE
-```
-
-### How Recovery Was Done
-
-```
-1. Checked git reflog - nothing additional recoverable
-2. Checked git stash - remaining stashes were package.json only
-3. Extracted from Claude Code history:
-   ~/.claude/projects/-home-imbios-projects-coding-helper/669a8733-6dbb-4cd7-b03d-720562a01cf7.jsonl
-4. Successfully recovered 8 files totaling ~50KB
 ```
 
 ### Lessons Learned
@@ -89,10 +63,33 @@ FLOW:
 │    → Can be amended/rebased later                               │
 │                                                                 │
 │ 5. IMMEDIATE BACKUP after session:                              │
-│    → tar -czvf ~/coding-helper-$(date +%Y%m%d).tar.gz .         │
+│    → tar -czvf ~/coding-helper-$(date +%Y%m%d).tar.gz .        │
 │                                                                 │
-│ 6. Claude Code history is recoverable!                           │
-│    → ~/.claude/projects/*/*.jsonl contains all Write operations │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Recovery Plan
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ RECOVERY STRATEGY                                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ IMMEDIATE:                                                     │
+│ □ Check git reflog for any recoverable states                   │
+│   → git reflog --all | grep -i project                          │
+│   → git stash list --all                                        │
+│                                                                 │
+│ □ Review Claude Code conversation history for code snippets      │
+│   → System message mentions:                                     │
+│     - project/init.tsx (13KB)                                   │
+│     - project/doctor.tsx (11KB)                                │
+│     - project/index.ts (1.8KB)                                 │
+│                                                                 │
+│ IF NO RECOVERY:                                                │
+│ □ Rewriting is faster than you think                            │
+│ □ The core concepts are clear from conversation                  │
+│ □ This TODO file documents requirements thoroughly              │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -224,7 +221,7 @@ fi
 BACKUP_SIZE=$(du -b "$BACKUP_DIR/files.tar.gz" 2>/dev/null | cut -f1 || echo 0)
 echo "{\"timestamp\": \"$(date -Iseconds)\", \"size\": $BACKUP_SIZE}" >> "$BACKUP_DIR/.meta"
 
-echo "Backup created: $BACKUP_DIR"
+echo "✓ Backup created: $BACKUP_DIR"
 ```
 
 #### Claude Code Hook Configuration
@@ -291,7 +288,7 @@ export async function handleBackupDiff(backupId: string): Promise<void> {
 │ ├─ CLI: cohe backup restore <id>                               │
 │ └─ Diff visualization                                          │
 │                                                                 │
-│ PHASE 4: Cleanup & Optimization (Day 4)                       │
+│ PHASE 4: Cleanup & Optimization (Day 4)                        │
 │ ├─ Automatic old backup cleanup                                │
 │ ├─ Compression optimization                                   │
 │ └─ Incremental backup (rsync-style)                           │
@@ -318,6 +315,70 @@ Directory Structure:
 
 Max History: 30 backups (configurable)
 Auto-cleanup: Delete oldest when exceeding limit
+```
+
+### Backup Content Details
+
+```
+WHAT'S INCLUDED IN BACKUP:
+├─ Tracked files (git ls-files)
+│  └─ Current state of all tracked files
+│
+├─ Untracked files (git ls-files --others --exclude-standard)
+│  └─ New files not yet staged/committed
+│
+├─ Git metadata
+│  ├─ Current commit hash
+│  ├─ Branch name
+│  └─ Stash list (git stash list)
+│
+└─ Timestamps
+   └─ When backup was created
+```
+
+### Usage Examples
+
+```bash
+# Create manual backup
+cohe backup create
+
+# List all backups for current project
+cohe backup list
+
+# Show backup details
+cohe backup show backup-20260205T143000Z
+
+# Diff current state vs backup
+cohe backup diff backup-20260205T143000Z
+
+# Restore backup (interactive)
+cohe backup restore backup-20260205T143000Z
+
+# Restore to specific directory
+cohe backup restore backup-20260205T143000Z --output=/tmp/restored
+
+# Cleanup old backups
+cohe backup cleanup --keep=10
+```
+
+### Error Handling
+
+```
+ERROR SCENARIOS:
+├─ No git repository
+│  → Still backup files, mark commit as "no-git"
+│
+├─ Permission denied
+│  → Skip problematic files, log warning
+│
+├─ Disk full
+│  → Cleanup old backups first, retry
+│
+├─ Large repository (>1GB)
+│  → Prompt for confirmation, offer incremental mode
+│
+└─ Backup corruption
+    → Verify with checksum, alert user
 ```
 
 ---
@@ -347,6 +408,58 @@ PROBLEM:
 └───────────────────────────────────────────────────────────────┘
 ```
 
+### User Stories
+
+```
+AS A developer working on a complex feature,
+I WANT to spawn multiple Claude Code instances for different aspects,
+SO THAT I can parallelize work (e.g., frontend + backend + tests simultaneously).
+
+AS A team lead,
+I WANT to see what all Claude Code sessions are working on in real-time,
+SO THAT I can coordinate and avoid duplicate work.
+
+AS A developer,
+I WANT to pause/resume Claude Code sessions and share context between them,
+SO THAT I can orchestrate complex workflows efficiently.
+```
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          Claude Code Leader                             │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                        Leader Interface                           │   │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐              │   │
+│  │  │ Session │  │ Session │  │ Session │  │ Session │  ...        │   │
+│  │  │   #1    │  │   #2    │  │   #3    │  │   #4    │             │   │
+│  │  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘              │   │
+│  │       │            │            │            │                     │   │
+│  │       ▼            ▼            ▼            ▼                     │   │
+│  │  ┌─────────────────────────────────────────────────────────────┐   │   │
+│  │  │              Shared Workspace Manager                      │   │   │
+│  │  │  - File lock coordination                                  │   │   │
+│  │  │  - Conflict detection                                      │   │   │
+│  │  │  - Shared context                                         │   │   │
+│  │  └─────────────────────────────────────────────────────────────┘   │   │
+│  │                                                                   │   │
+│  │  ┌─────────────────────────────────────────────────────────────┐   │   │
+│  │  │              Communication Channel                          │   │   │
+│  │  │  - Claude Code hooks (IPC)                                 │   │   │
+│  │  │  - Shared memory                                           │   │   │
+│  │  │  - Message queue                                           │   │   │
+│  │  └─────────────────────────────────────────────────────────────┘   │   │
+│  │                                                                   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                           │
+│  Input: "Fix the login bug, backend team check the API"                 │
+│  Routing: #1 → login.tsx, #2 → routes.ts, #3 → auth.ts                   │
+│                                                                           │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
 ### Interface Design
 
 #### Main Leader View
@@ -371,29 +484,64 @@ PROBLEM:
 │  │ #3 [tests]           [IDLE]          │    AVAILABLE ACTIONS:         │
 │  │    Files: __tests__/                │    [SEND MESSAGE]             │
 │  │    Status: Waiting for code         │    [VIEW LOGS]                │
-│  │    Last: [none]                    │    [INJECT FILE]              │
+│  │    Last: [none]                     │    [INJECT FILE]              │
 │  ├─────────────────────────────────────┤    [PAUSE/RESUME]             │
 │  │ #4 [docs]           [PAUSED]        │    [TERMINATE]                │
 │  │    Files: README.md, API.md         │                               │
 │  │    Status: Waiting                  │                               │
-│  │    Last: [paused by user]          │                               │
+│  │    Last: [paused by user]           │                               │
 │  └─────────────────────────────────────┘                                │
 │                                                                         │
 │  SHARED CONTEXT                                                      │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │ Active files across all sessions:                               │   │
-│  │   • src/api/client.tsx     modified by #1 (2 min ago)        │   │
-│  │   • src/routes/auth.ts     modified by #2 (5 min ago)        │   │
-│  │   • src/middleware/jwt.ts  modified by #2 (12 min ago)       │   │
+│  │   • src/api/client.tsx     modified by #1 (2 min ago)          │   │
+│  │   • src/routes/auth.ts     modified by #2 (5 min ago)          │   │
+│  │   • src/middleware/jwt.ts  modified by #2 (12 min ago)         │   │
 │  │                                                                     │   │
 │  │ Conflicts detected:                                              │   │
-│  │   #1 and #2 both modifying src/types/index.ts                 │   │
+│  │   ⚠ #1 and #2 both modifying src/types/index.ts               │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  [ENTER COMMAND MODE]                                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Per-Session Log View
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Session #1: frontend-api                              [BACK] [LOG]     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─ Claude Code ──────────────────────────────────────────────────┐   │
+│  │                                                                 │   │
+│  │  I see you're working on the API client refactoring.            │   │
+│  │  I'll focus on modernizing the data fetching hooks.            │   │
+│  │                                                                 │   │
+│  │  > I'm creating a new useData hook with better caching.        │   │
+│  │  ✓ ToolUse: write_file src/hooks/useData.ts                    │   │
+│  │                                                                 │   │
+│  │  > I've updated the API endpoints to use the new hook.         │   │
+│  │  ✓ ToolUse: write_file src/api/client.tsx                     │   │
+│  │                                                                 │   │
+│  │  > Now adding error handling and retry logic.                  │   │
+│  │  ✓ ToolUse: think                                              │   │
+│  │    [Thinking about best retry strategy...]                     │   │
+│  │                                                                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  WORKING FILES:                                                        │
+│  • src/hooks/useData.ts       [EDITED - 3 min ago]                     │
+│  • src/api/client.tsx        [EDITED - 1 min ago]                      │
+│  • src/types/api.ts          [CONFLICT - being edited by #2]          │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Technical Design
+
+#### Session Manager
 
 ```typescript
 // src/commands/leader/session-manager.ts
@@ -405,24 +553,287 @@ interface SessionInfo {
   workingDirectory: string;
   filesModified: Set<string>;
   lastActivity: Date;
-  pid?: number;
+  pid?: number;  // Process ID if running
   logPath: string;
-  assignedFiles?: string[];
+  assignedFiles?: string[];  // Files this session focuses on
+}
+
+interface SharedWorkspace {
+  baseDir: string;
+  fileLocks: Map<string, Set<string>>;  // file -> sessions editing
+  sharedContext: Map<string, unknown>;   // Shared variables between sessions
+  conflictMap: Map<string, SessionConflict>;
 }
 
 class SessionManager {
   private sessions: Map<string, SessionInfo> = new Map();
+  private workspace: SharedWorkspace;
 
+  // Create new session
   async createSession(name: string, assignFiles?: string[]): Promise<SessionInfo>;
+
+  // Start Claude Code for session
   async startSession(sessionId: string): Promise<void>;
+
+  // Pause/Resume session
   async pauseSession(sessionId: string): Promise<void>;
   async resumeSession(sessionId: string): Promise<void>;
+
+  // Terminate session
   async terminateSession(sessionId: string): Promise<void>;
+
+  // Get all active sessions
   async listSessions(): Promise<SessionInfo[]>;
+
+  // Check for file conflicts
+  async detectConflicts(): Promise<SessionConflict[]>;
+
+  // Broadcast message to all/all sessions
+  async broadcast(message: string, targetSessions?: string[]): Promise<void>;
 }
 ```
 
-### CLI Commands
+#### Communication Channel (via Hooks)
+
+```typescript
+// src/commands/leader/communication.ts
+
+// Claude Code hook for inter-session communication
+// Each session's hook reads/writes to shared channel
+
+interface InterSessionMessage {
+  fromSession: string;
+  toSession?: string;  // If undefined, broadcast
+  type: 'query' | 'response' | 'alert' | 'request';
+  content: string;
+  timestamp: Date;
+  correlationId?: string;  // For request/response pairs
+}
+
+class CommunicationChannel {
+  private channelDir: string;
+  private messageQueue: InterSessionMessage[] = [];
+
+  // Send message to another session
+  async send(message: InterSessionMessage): Promise<void>;
+
+  // Read messages for this session
+  async receive(sessionId: string): Promise<InterSessionMessage[]>;
+
+  // Broadcast to all sessions
+  async broadcast(fromSession: string, content: string): Promise<void>;
+
+  // Query with response
+  async query(
+    fromSession: string,
+    toSession: string,
+    question: string
+  ): Promise<string>;  // Waits for response
+
+  // Acknowledge file modification
+  async announceEdit(sessionId: string, filePath: string): Promise<void>;
+}
+```
+
+#### File Lock Coordination
+
+```typescript
+// src/commands/leader/file-lock.ts
+
+interface FileLock {
+  filePath: string;
+  sessionId: string;
+  lockType: 'exclusive' | 'shared';
+  timestamp: Date;
+  expiresAt?: Date;  // Auto-release after timeout
+}
+
+class FileLockManager {
+  private locks: Map<string, FileLock> = new Map();
+  private lockTimeout: number = 30 * 60 * 1000;  // 30 minutes
+
+  // Acquire lock
+  async acquireLock(
+    sessionId: string,
+    filePath: string,
+    lockType: 'exclusive' | 'shared' = 'exclusive'
+  ): Promise<boolean>;
+
+  // Release lock
+  async releaseLock(sessionId: string, filePath: string): Promise<void>;
+
+  // Check if file is locked by another session
+  async isLockedByOther(sessionId: string, filePath: string): Promise<boolean>;
+
+  // Get all locks for a session
+  async getSessionLocks(sessionId: string): Promise<FileLock[]>;
+
+  // Auto-cleanup expired locks
+  async cleanupExpiredLocks(): Promise<void>;
+}
+```
+
+#### Leader CLI Interface
+
+```typescript
+// src/commands/leader/main.ts
+
+export default class ClaudeCodeLeader extends BaseCommand {
+  static description = "Manage multiple concurrent Claude Code sessions";
+
+  async run(): Promise<void> {
+    // Render TUI with:
+    // - Session list with status
+    // - Command input
+    // - Shared workspace view
+    // - File conflict warnings
+  }
+}
+
+// CLI Commands:
+// cohe leader start [session-name] [--files="src/api/*"]
+// cohe leader list
+// cohe leader pause <session-id>
+// cohe leader resume <session-id>
+// cohe leader terminate <session-id>
+// cohe leader send <session-id> "message"
+// cohe leader broadcast "message to all"
+// cohe leader logs <session-id>
+// cohe leader assign <session-id> --files="path1,path2"
+```
+
+#### Claude Code Spawner Wrapper
+
+```typescript
+// src/utils/claude-spawner.ts
+
+interface SpawnedSession {
+  sessionId: string;
+  stdin: Writable;
+  stdout: Readable;
+  stderr: Readable;
+  process: ChildProcess;
+}
+
+class ClaudeSpawner {
+  private sessions: Map<string, SpawnedSession> = new Map();
+
+  // Spawn Claude Code with hook configured for leader communication
+  async spawn(
+    sessionId: string,
+    options?: {
+      workingDir?: string;
+      assignFiles?: string[];
+      customPrompt?: string;
+    }
+  ): Promise<SpawnedSession>;
+
+  // Send input to session
+  async sendInput(sessionId: string, input: string): Promise<void>;
+
+  // Read output from session
+  async readOutput(sessionId: string): Promise<string>;
+
+  // Terminate session
+  async terminate(sessionId: string): Promise<void>;
+
+  // Inject file modification
+  async injectFileEdit(
+    sessionId: string,
+    filePath: string,
+    edit: string
+  ): Promise<void>;
+}
+```
+
+### Communication Patterns
+
+```
+COMMUNICATION PATTERNS BETWEEN SESSIONS:
+
+1. BROADCAST
+   #1 → All Sessions: "I found a bug in auth.ts"
+
+2. DIRECT MESSAGE
+   #1 → #2: "Hey, I'm editing types.ts, please don't conflict"
+
+3. REQUEST/RESPONSE
+   #3 (tests) → #1 (api): "What's the return type of getUser?"
+   #1 → #3: "Returns UserProfile | null"
+
+4. CONFLICT NOTIFICATION
+   System → All: "#1 and #2 both editing src/api/routes.ts"
+
+5. PAUSE/RESUME COORDINATION
+   User → Leader → #3: "Pause, I need to check something"
+   User → Leader → #3: "Resume, continue with tests"
+```
+
+### Implementation Phases
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ IMPLEMENTATION PHASES - Claude Code Leader                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ PHASE 1: Session Manager (Week 1)                                │
+│ ├─ Session creation/termination                                 │
+│ ├─ Status tracking                                             │
+│ ├─ Basic TUI for session list                                  │
+│ └─ CLI: cohe leader start/stop/list                            │
+│                                                                 │
+│ PHASE 2: Claude Spawning (Week 2)                               │
+│ ├─ Spawn Claude Code processes                                  │
+│ ├─ Capture output/logs                                          │
+│ ├─ Inject inputs                                                │
+│ └─ File modification injection                                 │
+│                                                                 │
+│ PHASE 3: Communication Channel (Week 3)                         │
+│ ├─ Inter-session messaging via hooks                           │
+│ ├─ Broadcast support                                           │
+│ ├─ Request/response pattern                                    │
+│ └─ Shared context storage                                      │
+│                                                                 │
+│ PHASE 4: Workspace Coordination (Week 4)                        │
+│ ├─ File lock management                                        │
+│ ├─ Conflict detection and warnings                             │
+│ ├─ Conflict resolution UI                                      │
+│ └─ Merge conflict assistance                                   │
+│                                                                 │
+│ PHASE 5: Advanced Features (Week 5+)                             │
+│ ├─ Shared memory between sessions                              │
+│ ├─ Task distribution engine                                    │
+│ ├─ Session templates                                           │
+│ └─ Performance metrics and profiling                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### File Conflicts Detection
+
+```
+CONFLICT DETECTION ALGORITHM:
+
+1. Track file modifications per session
+   └─ Store: filePath → { sessionId, timestamp, operation }
+
+2. Detect overlap
+   └─ If file edited by multiple sessions within T window
+      → Flag as conflict
+
+3. Conflict severity levels:
+   ├─ GREEN:  Different parts of file (no overlap) → OK
+   ├─ YELLOW: Same function but different lines → Warning
+   ├─ ORANGE: Same function, overlapping lines → Alert
+   └─ RED:    Same exact lines → Block/Wait
+
+4. Resolution strategies:
+   ├─ AUTO: Merge if non-overlapping changes
+   ├─ ASSIST: Offer diff view for manual merge
+   └─ USER: Force one session to wait
+```
+
+### Usage Examples
 
 ```bash
 # Start leader UI
@@ -433,26 +844,93 @@ cohe leader start frontend --files="src/api/*,src/components/*"
 
 # List all sessions
 cohe leader list
+# Output:
+# ID   NAME       STATUS   FILES EDITED           LAST ACTIVITY
+# 1    frontend   RUNNING  3 files               2 min ago
+# 2    backend    RUNNING  5 files               5 min ago
+# 3    tests      IDLE     0 files              [waiting]
 
 # Send message to specific session
-cohe leader send 1 "Please review the auth changes"
+cohe leader send 1 "Please review the auth changes I made"
 
 # Broadcast to all
-cohe leader broadcast "Found critical bug, pause!"
+cohe leader broadcast "Found critical bug, everyone pause!"
 
-# View logs
+# View session logs
 cohe leader logs 2
+
+# Assign files to session (redirect work)
+cohe leader assign 3 --files="src/utils/validation.ts"
 
 # Pause/Resume
 cohe leader pause 1
 cohe leader resume 1
+
+# Terminate session
+cohe leader terminate 3
+```
+
+### Challenges & Solutions
+
+```
+CHALLENGES:
+
+1. Claude Code is blocking
+   └─ Solution: Spawn as subprocess, capture stdin/stdout
+
+2. Shared state consistency
+   └─ Solution: File-based coordination with atomic writes
+
+3. Race conditions
+   └─ Solution: File locks with timeout, conflict detection
+
+4. Resource management
+   └─ Solution: Limit concurrent sessions, auto-cleanup
+
+5. User experience complexity
+   └─ Solution: Progressive disclosure, sensible defaults
+
+6. Claude Code version compatibility
+   └─ Solution: Abstract spawner interface, version detection
+```
+
+---
+
+## Immediate Action Items
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ IMMEDIATE ACTION ITEMS (Tomorrow Morning)                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ ☐ RECOVERY:                                                     │
+│   □ Check git reflog for any recoverable states                 │
+│   □ Search conversation for code snippets to rewrite             │
+│   □ Prioritize rewriting: project/, first-run.tsx               │
+│                                                                 │
+│ ☐ PREVENTION (Today's Focus):                                  │
+│   □ Implement backup hook feature                               │
+│   □ Test backup/restore cycle                                   │
+│   □ Set up automatic backup schedule                            │
+│                                                                 │
+│ ☐ PERMANENT FIXES:                                              │
+│   □ Change git behavior: alias reset-soft = checkout -- .      │
+│   □ Create backup script: ./scripts/backup-work.sh              │
+│   □ Document recovery procedure in README.md                    │
+│                                                                 │
+│ ☐ INFRASTRUCTURE:                                               │
+│   □ Make repository private (gh repo edit --private)            │
+│   □ Stage all changes, commit with skip-pre-commit              │
+│   □ Set up .gitconfig alias for safe operations                │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 <!-----
 
 ## Git Safety Configuration
 
-@ImBIOS said, this requires further discussion
+TODO: @ImBIOS said this one need further discussion
 
 ```bash
 # Add to ~/.gitconfig or project .git/config
@@ -477,27 +955,59 @@ cohe leader resume 1
 
 ---
 
-## Immediate Action Items (COMPLETED)
+## Backup Script Template
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ IMMEDIATE ACTION ITEMS (COMPLETED)                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ ☑ RECOVERY:                                                     │
-│   ☑ Check git reflog for any recoverable states                 │
-│   ☑ Search Claude Code history for lost files                    │
-│   ☑ Recover 8 files from ~/.claude/projects/*.jsonl             │
-│   ☑ Commit recovered files                                        │
-│                                                                 │
-│ PREVENTION (TODO - Future):                                      │
-│   □ Implement backup hook feature                               │
-│   □ Set up automatic backup schedule                            │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```bash
+#!/bin/bash
+# scripts/backup-work.sh - Emergency backup script
+
+set -e
+
+BACKUP_DIR="$HOME/.cohe/manual-backups"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+BACKUP_NAME="coding-helper-$TIMESTAMP"
+
+mkdir -p "$BACKUP_DIR"
+
+# Create archive
+tar -czvf "$BACKUP_DIR/$BACKUP_NAME.tar.gz" \
+  -C "$(dirname "$PROJECT_DIR")" \
+  "$(basename "$PROJECT_DIR")" \
+  # TODO: Exclude should auto include what's in `.gitignore`
+  --exclude='node_modules' \
+  --exclude='dist' \
+  --exclude='.git'
+
+echo "✓ Backup created: $BACKUP_DIR/$BACKUP_NAME.tar.gz"
+
+# List recent backups
+echo ""
+echo "Recent backups:"
+ls -lh "$BACKUP_DIR" | tail -5
 ```
 
 ---
 
-*Document updated: 2026-02-06*
-*Status: RECOVERY COMPLETED ✅*
+## Notes
+
+```
+TODAY'S LESSON:
+
+Code loss is preventable. The issue wasn't git or stashes -
+it was running destructive commands without understanding the
+full impact on untracked files.
+
+GOING FORWARD:
+1. Every session: Create backup before major changes
+2. Never run git reset --hard with untracked files
+3. Use git stash -k (--keep-index) for partial work
+4. Commit WIPs as "WIP: [description]"
+5. Document everything in TODO.local.md
+```
+
+---
+
+*Document generated: 2026-02-05*
+*Author: Claude Code (recovering from incident)*
+*Purpose: Recovery and prevention guide*

@@ -1,15 +1,22 @@
 #!/usr/bin/env bun
 #===============================================================================
-# Global Multi-Language Code Formatter (TypeScript Version)
-# Primary: Biome (JS/TS/JSX/JSON/CSS/GraphQL)
-# Fallbacks: Language-specific formatters for other languages
+#
+Global;
+Multi - Language;
+Code;
+Formatter (TypeScript Version)
+#
+Primary: Biome(JS / TS / JSX / JSON / CSS / GraphQL);
+#
+Fallbacks: Language - specific;
+formatters;
+for other languages
 #===============================================================================
 
-import { existsSync } from "node:fs";
-import { chmodSync, readFileSync, writeFileSync } from "node:fs";
+
 import { spawn } from "node:child_process";
-import { homedir, tmpdir } from "node:os";
-import { join, basename, extname } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
+import { basename, extname, join } from "node:path";
 
 // Colors
 const colors = {
@@ -152,7 +159,7 @@ async function formatToml(file: string): Promise<boolean> {
 }
 
 async function formatFile(file: string): Promise<boolean> {
-  if (!existsSync(file) || !existsSync(file)) {
+  if (!(existsSync(file) && existsSync(file))) {
     return false;
   }
 
@@ -237,8 +244,17 @@ async function extractFilePathFromJson(input: string): Promise<string | null> {
 
     // Try nested tool_input
     if ("tool_input" in data && typeof data.tool_input === "object") {
-      for (const key of ["file_path", "path", "file", "destination", "target"]) {
-        if (key in data.tool_input && typeof data.tool_input[key] === "string") {
+      for (const key of [
+        "file_path",
+        "path",
+        "file",
+        "destination",
+        "target",
+      ]) {
+        if (
+          key in data.tool_input &&
+          typeof data.tool_input[key] === "string"
+        ) {
           return data.tool_input[key];
         }
       }
