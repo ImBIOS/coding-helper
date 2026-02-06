@@ -888,37 +888,50 @@ export async function handleHooks(args: string[]): Promise<void> {
       break;
     }
 
+    case "post-tool": {
+      const { default: PostTool } = await import("./hooks/post-tool.js");
+      await new PostTool(["hooks", "post-tool", ...args.slice(1)]).run();
+      break;
+    }
+
+    case "stop": {
+      const { default: HooksStop } = await import("./hooks/stop.js");
+      await new HooksStop(["hooks", "stop", ...args.slice(1)]).run();
+      break;
+    }
+
     default: {
       console.log(`
 ImBIOS Claude Code Hooks Management
 
-Hooks enable auto-rotation for both direct Claude CLI and ACP usage.
+Hooks enable auto-rotation, formatting, and notifications.
 
 Usage: cohe hooks <command>
 
 Commands:
-  setup       Install hooks globally in ~/.claude/
-  uninstall   Remove hooks
+  setup       Install all hooks globally in ~/.claude/
+  uninstall   Remove all hooks
   status      Check hook installation status
+  post-tool   Format files after Write|Edit (PostToolUse hook)
+  stop        Session end notifications + commit prompt (Stop hook)
+
+Installed Hooks:
+  SessionStart  Auto-rotate API keys on startup
+  PostToolUse   Format files after Write|Edit
+  Stop          Notifications + commit prompt on session end
 
 How it works:
-  When you start Claude (with 'claude' or through ACP), the SessionStart hook
-  automatically rotates your API keys to the least-used account.
+  - SessionStart: Rotates API keys when you start Claude
+  - PostToolUse: Runs 'cohe hooks post-tool' after file writes
+  - Stop: Sends notifications and prompts to commit on session end
 
-Configuration:
-  Hooks respect your rotation settings in ~/.claude/imbios.json:
-  - Rotation: enabled by default
-  - Strategy: least-used by default
-  - Cross-provider: enabled by default
-
-  Change settings with: cohe auto enable <strategy>
+All hooks use the cohe CLI directly, so they auto-update with the package.
 
 Examples:
-  cohe hooks setup           # Install hooks
+  cohe hooks setup           # Install all hooks
   cohe hooks status          # Check installation
-  cohe auto status           # Check rotation settings
-  cohe auto enable priority  # Change rotation strategy
-  cohe hooks uninstall       # Remove hooks
+  cohe hooks post-tool       # Run formatter manually
+  cohe hooks uninstall       # Remove all hooks
 `);
     }
   }

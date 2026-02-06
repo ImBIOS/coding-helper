@@ -2,14 +2,20 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Box, Text } from "ink";
-import { BaseCommand } from "../../oclif/base.tsx";
+import { BaseCommand } from "../../oclif/base.js";
 import {
   Error as ErrorBadge,
-  Info,
   Section,
   Success,
   Warning,
 } from "../../ui/index.js";
+
+interface HookCheckResult {
+  name: string;
+  command: string;
+  registered: boolean;
+  hookType: string;
+}
 
 export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
   static description = "Check Claude Code hooks installation status";
@@ -24,37 +30,62 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
     const hooksDir = path.join(os.homedir(), ".claude", "hooks");
     const hookScriptPath = path.join(hooksDir, "auto-rotate.sh");
 
-    // Check various status indicators
     const scriptExists = fs.existsSync(hookScriptPath);
     const scriptExecutable =
       scriptExists && (fs.statSync(hookScriptPath).mode & 0o755) !== 0;
 
+    const hooks: HookCheckResult[] = [
+      {
+        name: "SessionStart",
+        command: "cohe auto hook --silent",
+        registered: false,
+        hookType: "auto-rotate",
+      },
+      {
+        name: "PostToolUse",
+        command: "cohe hooks post-tool --silent",
+        registered: false,
+        hookType: "format",
+      },
+      {
+        name: "Stop",
+        command: "cohe hooks stop --silent",
+        registered: false,
+        hookType: "notify",
+      },
+    ];
+
     let settingsFound = false;
-    let hookRegistered = false;
-    let hookCommand = "";
     let rotationEnabled = false;
     let rotationStrategy = "unknown";
 
-    // Check settings.json
     if (fs.existsSync(settingsFilePath)) {
       try {
         const content = fs.readFileSync(settingsFilePath, "utf-8");
         const settings = JSON.parse(content);
         settingsFound = true;
 
-        // Check if hook is registered (either old bash script or new cohe command)
-        if (settings.hooks?.SessionStart) {
-          for (const hookConfig of settings.hooks.SessionStart) {
-            if (
-              hookConfig.type === "command" &&
-              hookConfig.command &&
-              (hookConfig.command === hookScriptPath ||
-                hookConfig.command.includes("auto-rotate.sh") ||
-                hookConfig.command.includes("auto hook"))
-            ) {
-              hookRegistered = true;
-              hookCommand = hookConfig.command;
-              break;
+        for (const hook of hooks) {
+          if (settings.hooks?.[hook.name]) {
+            const hookArray = settings.hooks[hook.name] as Array<unknown>;
+            for (const hookGroup of hookArray) {
+              if (hookGroup.hooks && Array.isArray(hookGroup.hooks)) {
+                for (const hookConfig of hookGroup.hooks) {
+                  if (hookConfig.type === "command" && hookConfig.command) {
+                    const cmd = hookConfig.command;
+                    // Check if command matches our hook
+                    const subcommand = hook.command.split(" ")[1]; // "auto", "hooks post-tool", "hooks stop"
+                    if (
+                      cmd.includes(subcommand) ||
+                      cmd.includes(hook.hookType)
+                    ) {
+                      hook.registered = true;
+                      break;
+                    }
+                  }
+                }
+              }
+              if (hook.registered) break;
             }
           }
         }
@@ -76,12 +107,8 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
       }
     }
 
-    // Determine overall status
-    // Hook is fully installed if it's registered in settings (we don't need the script anymore)
-    const isFullyInstalled = hookRegistered;
-    const isPartiallyInstalled = scriptExists || hookRegistered;
-    const _usesBashScript = hookCommand.includes("auto-rotate.sh");
-    const usesCoheCommand = hookCommand.includes("auto hook");
+    const allHooksInstalled = hooks.every((h) => h.registered);
+    const someHooksInstalled = hooks.some((h) => h.registered);
 
     await this.renderApp(
       <Section title="Hooks Status">
@@ -89,30 +116,31 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
           {/* Overall Status */}
           <Box>
             <Text bold>Overall Status: </Text>
-            {isFullyInstalled ? (
-              <Success inline>Installed</Success>
-            ) : isPartiallyInstalled ? (
-              <Warning inline>Partially Installed</Warning>
+            {allHooksInstalled ? (
+              <Success inline>All Installed</Success>
+            ) : someHooksInstalled ? (
+              <Warning inline>Partial</Warning>
             ) : (
               <ErrorBadge inline>Not Installed</ErrorBadge>
             )}
           </Box>
 
-          {/* Hook Type */}
-          {hookRegistered && (
-            <Box marginTop={1}>
-              <Text bold>Hook Type: </Text>
-              {usesCoheCommand ? (
-                <Success inline>CLI Command (auto-updating)</Success>
+          {/* Installed Hooks */}
+          <Box marginTop={1}>
+            <Text bold>Installed Hooks:</Text>
+          </Box>
+          {hooks.map((hook) => (
+            <Box key={hook.name} marginLeft={2}>
+              {hook.registered ? (
+                <Success inline>{hook.name}</Success>
               ) : (
-                <Text color="yellow" inline>
-                  Bash Script
-                </Text>
+                <ErrorBadge inline>{hook.name}</ErrorBadge>
               )}
+              <Text dimmed> ({hook.hookType})</Text>
             </Box>
-          )}
+          ))}
 
-          {/* Hook Script (legacy) */}
+          {/* Legacy Hook Script */}
           <Box marginTop={1}>
             <Text bold>Legacy Hook Script: </Text>
             {scriptExists ? (
@@ -134,18 +162,13 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
           {/* Settings Registration */}
           <Box marginTop={1}>
             <Text bold>Registered in Settings: </Text>
-            {hookRegistered ? (
+            {settingsFound ? (
               <Success inline>Yes</Success>
             ) : (
               <ErrorBadge inline>No</ErrorBadge>
             )}
           </Box>
-          {hookRegistered && (
-            <Box marginLeft={2}>
-              <Text dimmed>{hookCommand}</Text>
-            </Box>
-          )}
-          {settingsFound && !hookRegistered && (
+          {settingsFound && !someHooksInstalled && (
             <Box marginLeft={2}>
               <Text dimmed>{settingsFilePath}</Text>
             </Box>
@@ -172,36 +195,25 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
 
           {/* Actions */}
           <Box flexDirection="column" marginTop={2}>
-            {!isFullyInstalled && (
+            {!allHooksInstalled && (
               <Warning>
-                Hooks are not fully installed. Run "cohe hooks setup" to
-                install.
+                Run "cohe hooks setup" to install missing hooks.
               </Warning>
             )}
 
-            {isFullyInstalled && !rotationEnabled && (
+            {allHooksInstalled && !rotationEnabled && (
               <Warning>
-                Hooks are installed but rotation is disabled. Enable it with
-                "cohe auto enable".
+                Hooks installed but rotation is disabled. Enable it with "cohe
+                auto enable".
               </Warning>
             )}
 
-            {isFullyInstalled && rotationEnabled && (
+            {allHooksInstalled && rotationEnabled && (
               <Success>
-                Hooks are installed and rotation is enabled! Auto-rotation will
-                work with both Claude CLI and ACP.
+                All hooks are installed and rotation is enabled!
               </Success>
             )}
           </Box>
-
-          {/* Debug Info */}
-          {process.env.CLAUDE_HOOK_DEBUG && (
-            <Box flexDirection="column" marginTop={1}>
-              <Info>
-                Debug mode enabled. Check ~/.claude/hooks-debug.log for details.
-              </Info>
-            </Box>
-          )}
         </Box>
       </Section>
     );

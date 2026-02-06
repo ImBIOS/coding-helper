@@ -1,25 +1,25 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { error, info, section, success, warning } from "../../utils/logger";
+import { error, info, section, success, warning } from "../../utils/logger.js";
 
 export async function handleHooksSetup(): Promise<void> {
   const claudeSettingsPath = path.join(os.homedir(), ".claude");
   const settingsFilePath = path.join(claudeSettingsPath, "settings.json");
 
-  // The hook command - using cohe CLI directly
-  // This ensures auto-updates when the cohe package is updated
-  const hookCommand = "cohe auto hook --silent";
+  // Hook commands - using cohe CLI directly for auto-updates
+  const sessionStartCommand = "cohe auto hook --silent";
+  const postToolCommand = "cohe hooks post-tool --silent";
+  const stopCommand = "cohe hooks stop --silent";
 
   try {
     // Read existing settings or create new
-    let settings: any = {};
+    let settings: Record<string, unknown> = {};
     if (fs.existsSync(settingsFilePath)) {
       const content = fs.readFileSync(settingsFilePath, "utf-8");
       try {
         settings = JSON.parse(content);
       } catch {
-        // Invalid JSON, start fresh
         settings = {};
       }
     }
@@ -29,60 +29,104 @@ export async function handleHooksSetup(): Promise<void> {
       settings.hooks = {};
     }
 
-    // Initialize SessionStart hooks array if it doesn't exist
+    let hooksInstalled = 0;
+    let hooksSkipped = 0;
+
+    // Install SessionStart hook (auto-rotate)
     if (!settings.hooks.SessionStart) {
       settings.hooks.SessionStart = [];
     }
-
-    // Check if our hook is already installed (either old bash or new cohe command)
-    const hookExists = settings.hooks.SessionStart.some((hookConfig: any) => {
-      return (
+    const sessionStartExists = (
+      settings.hooks.SessionStart as Array<unknown>
+    ).some(
+      (hookConfig: any) =>
         hookConfig.type === "command" &&
         hookConfig.command &&
-        (hookConfig.command === hookCommand ||
+        (hookConfig.command === sessionStartCommand ||
           hookConfig.command.includes("auto hook") ||
           hookConfig.command.includes("auto-rotate.sh"))
-      );
-    });
-
-    if (hookExists) {
-      section("Hooks Setup");
-      info("Auto-rotate hook is already installed.");
-      info(`Hook command: ${hookCommand}`);
-      return;
+    );
+    if (sessionStartExists) {
+      hooksSkipped++;
+    } else {
+      (settings.hooks.SessionStart as Array<unknown>).push({
+        matcher: "startup|resume|clear|compact",
+        hooks: [
+          {
+            type: "command",
+            command: sessionStartCommand,
+          },
+        ],
+      });
+      hooksInstalled++;
     }
 
-    // Add the hook configuration
-    settings.hooks.SessionStart.push({
-      matcher: "startup|resume|clear|compact",
-      hooks: [
-        {
-          type: "command",
-          command: hookCommand,
-        },
-      ],
-    });
+    // Install PostToolUse hook (format files)
+    if (!settings.hooks.PostToolUse) {
+      settings.hooks.PostToolUse = [];
+    }
+    const postToolExists = (settings.hooks.PostToolUse as Array<unknown>).some(
+      (hookConfig: any) =>
+        hookConfig.type === "command" &&
+        hookConfig.command &&
+        hookConfig.command.includes("hooks post-tool")
+    );
+    if (postToolExists) {
+      hooksSkipped++;
+    } else {
+      (settings.hooks.PostToolUse as Array<unknown>).push({
+        matcher: "Write|Edit",
+        hooks: [
+          {
+            type: "command",
+            command: postToolCommand,
+          },
+        ],
+      });
+      hooksInstalled++;
+    }
+
+    // Install Stop hook (notifications)
+    if (!settings.hooks.Stop) {
+      settings.hooks.Stop = [];
+    }
+    const stopExists = (settings.hooks.Stop as Array<unknown>).some(
+      (hookConfig: any) =>
+        hookConfig.type === "command" &&
+        hookConfig.command &&
+        hookConfig.command.includes("hooks stop")
+    );
+    if (stopExists) {
+      hooksSkipped++;
+    } else {
+      (settings.hooks.Stop as Array<unknown>).push({
+        hooks: [
+          {
+            type: "command",
+            command: stopCommand,
+          },
+        ],
+      });
+      hooksInstalled++;
+    }
 
     // Write updated settings
     fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2));
 
     section("Hooks Setup");
-    success("Auto-rotate hook installed successfully!");
-    info(`Hook command: ${hookCommand}`);
+    success(
+      `Installed ${hooksInstalled} hook(s), ${hooksSkipped} already present.`
+    );
     info(`Settings location: ${settingsFilePath}`);
     info("");
-    info(
-      "The hook will automatically rotate your API keys when you start a Claude session."
-    );
-    info(
-      "Uses the cohe CLI directly, so updates to the rotation algorithm are automatically applied."
-    );
+    info("Installed hooks:");
+    info("  • SessionStart: Auto-rotate API keys on startup");
+    info("  • PostToolUse: Format files after Write|Edit");
+    info("  • Stop: Notifications + commit prompt on session end");
     info("");
-    info("Current configuration:");
-    info("  • Rotation: enabled");
-    info("  • Strategy: least-used");
-    info("");
-    info('Run "cohe config" or "cohe auto status" to view or change settings.');
+    info(
+      "Uses the cohe CLI directly, so all hooks auto-update with the package."
+    );
   } catch (err: any) {
     section("Hooks Setup");
     error("Failed to install hooks");
@@ -98,17 +142,18 @@ export async function handleHooksUninstall(): Promise<void> {
   try {
     let hookRemoved = false;
     let settingsModified = false;
+    let hooksRemoved = 0;
 
-    // Remove hook script if it exists (legacy)
+    // Remove legacy hook script if it exists
     if (fs.existsSync(hookScriptPath)) {
       fs.unlinkSync(hookScriptPath);
       hookRemoved = true;
     }
 
-    // Update settings.json to remove hook configuration
+    // Update settings.json to remove all cohe hooks
     if (fs.existsSync(settingsFilePath)) {
       const content = fs.readFileSync(settingsFilePath, "utf-8");
-      let settings: any;
+      let settings: Record<string, unknown>;
 
       try {
         settings = JSON.parse(content);
@@ -116,68 +161,75 @@ export async function handleHooksUninstall(): Promise<void> {
         settings = {};
       }
 
-      if (settings.hooks?.SessionStart) {
-        const originalLength = settings.hooks.SessionStart.length;
+      const hookTypes = ["SessionStart", "PostToolUse", "Stop"] as const;
 
-        // Filter out our auto-rotate hook (either old bash or new cohe command)
-        // Each SessionStart entry has a "hooks" array containing the actual hooks
-        settings.hooks.SessionStart = settings.hooks.SessionStart.filter(
-          (hookGroup: any) => {
-            // Check if this hook group contains our hook
+      for (const hookType of hookTypes) {
+        if (settings.hooks?.[hookType]) {
+          const originalLength = (settings.hooks[hookType] as Array<unknown>)
+            .length;
+
+          (settings.hooks[hookType] as Array<unknown>) = (
+            settings.hooks[hookType] as Array<unknown>
+          ).filter((hookGroup: any) => {
             if (!(hookGroup.hooks && Array.isArray(hookGroup.hooks))) {
-              return true; // Keep entries that don't have a hooks array
+              return true;
             }
 
-            // Check if any hook in the group is our auto-rotate hook
             const hasOurHook = hookGroup.hooks.some((hookConfig: any) => {
-              if (hookConfig.type !== "command") {
-                return false;
-              }
-              if (!hookConfig.command) {
+              if (hookConfig.type !== "command" || !hookConfig.command) {
                 return false;
               }
 
+              const cmd = hookConfig.command;
               return (
-                hookConfig.command === hookScriptPath ||
-                hookConfig.command.includes("auto-rotate.sh") ||
-                hookConfig.command.includes("auto hook") ||
-                hookConfig.command === "cohe auto hook --silent"
+                cmd === hookScriptPath ||
+                cmd.includes("auto-rotate.sh") ||
+                cmd.includes("auto hook") ||
+                cmd === "cohe auto hook --silent" ||
+                cmd.includes("hooks post-tool") ||
+                cmd.includes("hooks stop")
               );
             });
 
-            // Filter out the entry if it contains our hook
             return !hasOurHook;
-          }
-        );
+          });
 
-        if (settings.hooks.SessionStart.length !== originalLength) {
-          settingsModified = true;
+          if (
+            (settings.hooks[hookType] as Array<unknown>).length !==
+            originalLength
+          ) {
+            hooksRemoved +=
+              originalLength -
+              (settings.hooks[hookType] as Array<unknown>).length;
+            settingsModified = true;
 
-          // Clean up empty SessionStart array
-          if (settings.hooks.SessionStart.length === 0) {
-            settings.hooks.SessionStart = undefined;
-
-            // Clean up empty hooks object
-            if (Object.keys(settings.hooks).length === 0) {
-              settings.hooks = undefined;
+            // Clean up empty arrays
+            if ((settings.hooks[hookType] as Array<unknown>).length === 0) {
+              delete settings.hooks[hookType];
             }
           }
-
-          // Write updated settings
-          fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2));
         }
+      }
+
+      // Clean up empty hooks object
+      if (settings.hooks && Object.keys(settings.hooks).length === 0) {
+        settings.hooks = undefined;
+      }
+
+      if (settingsModified) {
+        fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2));
       }
     }
 
     section("Hooks Uninstall");
 
     if (!(hookRemoved || settingsModified)) {
-      info("No auto-rotate hooks found.");
+      info("No cohe hooks found.");
       info("Hooks may have already been removed or were never installed.");
       return;
     }
 
-    success("Auto-rotate hooks removed successfully!");
+    success(`Removed ${hooksRemoved} hook(s).`);
 
     if (hookRemoved) {
       info("Removed legacy hook script");
@@ -188,7 +240,7 @@ export async function handleHooksUninstall(): Promise<void> {
 
     info("");
     info(
-      "Auto-rotation is no longer automatic. You can still manually rotate with 'cohe auto rotate'."
+      "Auto-rotation, formatting, and notifications are no longer automatic."
     );
     info("To re-enable hooks, run 'cohe hooks setup'.");
   } catch (err: any) {
@@ -203,54 +255,67 @@ export async function handleHooksStatus(): Promise<void> {
   const hooksDir = path.join(os.homedir(), ".claude", "hooks");
   const hookScriptPath = path.join(hooksDir, "auto-rotate.sh");
 
-  // Check various status indicators
   const scriptExists = fs.existsSync(hookScriptPath);
   const scriptExecutable =
     scriptExists && (fs.statSync(hookScriptPath).mode & 0o755) !== 0;
 
+  interface HookStatus {
+    name: string;
+    command: string;
+    registered: boolean;
+    hookType: string;
+  }
+
+  const hooks: HookStatus[] = [
+    {
+      name: "SessionStart",
+      command: "cohe auto hook --silent",
+      registered: false,
+      hookType: "auto-rotate",
+    },
+    {
+      name: "PostToolUse",
+      command: "cohe hooks post-tool --silent",
+      registered: false,
+      hookType: "format",
+    },
+    {
+      name: "Stop",
+      command: "cohe hooks stop --silent",
+      registered: false,
+      hookType: "notify",
+    },
+  ];
+
   let settingsFound = false;
-  let hookRegistered = false;
-  let hookCommand = "";
   let rotationEnabled = false;
   let rotationStrategy = "unknown";
 
-  // Check settings.json
   if (fs.existsSync(settingsFilePath)) {
     try {
       const content = fs.readFileSync(settingsFilePath, "utf-8");
       const settings = JSON.parse(content);
       settingsFound = true;
 
-      // Check if hook is registered (either old bash script or new cohe command)
-      if (settings.hooks?.SessionStart) {
-        hookRegistered = settings.hooks.SessionStart.some((hookGroup: any) => {
-          // Each SessionStart entry has a "hooks" array containing the actual hooks
-          if (!(hookGroup.hooks && Array.isArray(hookGroup.hooks))) {
-            return false;
-          }
-
-          return hookGroup.hooks.some((hookConfig: any) => {
-            if (hookConfig.type !== "command") {
-              return false;
+      for (const hook of hooks) {
+        if (settings.hooks?.[hook.name]) {
+          (settings.hooks[hook.name] as Array<unknown>).forEach(
+            (hookGroup: any) => {
+              if (hookGroup.hooks && Array.isArray(hookGroup.hooks)) {
+                hookGroup.hooks.forEach((hookConfig: any) => {
+                  if (
+                    hookConfig.type === "command" &&
+                    hookConfig.command &&
+                    (hookConfig.command.includes(hook.command.split(" ")[1]) ||
+                      hookConfig.command.includes(hook.hookType))
+                  ) {
+                    hook.registered = true;
+                  }
+                });
+              }
             }
-            if (!hookConfig.command) {
-              return false;
-            }
-
-            const cmd = hookConfig.command;
-            // Check if command is our hook (old bash or new cohe command)
-            if (
-              cmd === hookScriptPath ||
-              cmd === `"${hookScriptPath}"` ||
-              cmd.includes("auto-rotate.sh") ||
-              cmd.includes("auto hook")
-            ) {
-              hookCommand = cmd;
-              return true;
-            }
-            return false;
-          });
-        });
+          );
+        }
       }
     } catch {
       // Invalid JSON
@@ -270,81 +335,56 @@ export async function handleHooksStatus(): Promise<void> {
     }
   }
 
-  // Determine overall status
-  // Hook is fully installed if it's registered (we don't need the script anymore)
-  const isFullyInstalled = hookRegistered;
-  const isPartiallyInstalled = scriptExists || hookRegistered;
-  const usesCoheCommand = hookCommand.includes("auto hook");
+  const allHooksInstalled = hooks.every((h) => h.registered);
+  const someHooksInstalled = hooks.some((h) => h.registered);
 
   section("Hooks Status");
 
-  // Overall Status
   console.log(
-    "Overall Status: " +
-      (isFullyInstalled
-        ? "✓ Installed"
-        : isPartiallyInstalled
-          ? "⚠ Partially Installed"
-          : "✗ Not Installed")
+    `Overall Status: ${allHooksInstalled ? "✓ All Installed" : someHooksInstalled ? "⚠ Partial" : "✗ Not Installed"}`
   );
 
-  // Hook Type
-  if (hookRegistered) {
-    console.log("");
-    console.log(
-      "Hook Type: " +
-        (usesCoheCommand
-          ? "✓ CLI Command (auto-updating)"
-          : "○ Bash Script (legacy)")
-    );
-    console.log(`  ${hookCommand}`);
+  console.log("");
+  console.log("Installed Hooks:");
+  for (const hook of hooks) {
+    const status = hook.registered ? "✓" : "○";
+    const typeLabel = {
+      "auto-rotate": "Auto-rotate",
+      format: "Format files",
+      notify: "Notifications",
+    }[hook.hookType];
+    console.log(`  ${status} ${hook.name}: ${typeLabel}`);
+    if (hook.registered) {
+      console.log(`    ${hook.command}`);
+    }
   }
 
-  // Legacy Hook Script
   console.log("");
   console.log(
-    "Legacy Hook Script: " +
-      (scriptExists
-        ? scriptExecutable
-          ? "✓ Found"
-          : "⚠ Not Executable"
-        : "○ Not Found (using CLI command)")
+    `Legacy Hook Script: ${scriptExists ? (scriptExecutable ? "✓ Found" : "⚠ Not Executable") : "○ Not Found"}`
   );
   if (scriptExists) {
     console.log(`  ${hookScriptPath}`);
   }
 
-  // Settings Registration
   console.log("");
-  console.log(`Registered in Settings: ${hookRegistered ? "✓ Yes" : "✗ No"}`);
-  if (settingsFound && !hookRegistered) {
+  console.log(`Registered in Settings: ${settingsFound ? "✓ Yes" : "✗ No"}`);
+  if (settingsFound && !someHooksInstalled) {
     console.log(`  ${settingsFilePath}`);
   }
 
-  // Rotation Configuration
   console.log("");
   console.log(`Rotation Enabled: ${rotationEnabled ? "✓ Yes" : "○ No"}`);
   console.log(`Rotation Strategy: ${rotationStrategy}`);
 
-  // Actions
   console.log("");
-  if (!isFullyInstalled) {
-    warning(
-      "Hooks are not fully installed. Run 'cohe hooks setup' to install."
-    );
+  if (!allHooksInstalled) {
+    warning(`Run 'cohe hooks setup' to install missing hooks.`);
   } else if (rotationEnabled) {
-    success(
-      "Hooks are installed and rotation is enabled! Auto-rotation will work with both Claude CLI and ACP."
-    );
+    success("All hooks are installed and rotation is enabled!");
   } else {
     warning(
-      "Hooks are installed but rotation is disabled. Enable it with 'cohe auto enable'."
+      "Hooks installed but rotation is disabled. Run 'cohe auto enable'."
     );
-  }
-
-  // Debug Info
-  if (process.env.CLAUDE_HOOK_DEBUG) {
-    info("");
-    info("Debug mode enabled. Check ~/.claude/hooks-debug.log for details.");
   }
 }

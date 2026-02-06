@@ -2,11 +2,13 @@ import { Box, Text } from "ink";
 import { BaseCommand } from "../../oclif/base.tsx";
 
 export default class HooksIndex extends BaseCommand<typeof HooksIndex> {
-  static description = "Manage Claude Code hooks for auto-rotation";
+  static description = "Manage Claude Code hooks";
   static examples = [
     "<%= config.bin %> hooks setup",
     "<%= config.bin %> hooks uninstall",
     "<%= config.bin %> hooks status",
+    "<%= config.bin %> hooks post-tool",
+    "<%= config.bin %> hooks stop",
   ];
 
   async run(): Promise<void> {
@@ -26,10 +28,16 @@ export default class HooksIndex extends BaseCommand<typeof HooksIndex> {
           <Text>
             • <Text bold>status</Text> - Check hook installation status
           </Text>
+          <Text>
+            • <Text bold>post-tool</Text> - Format files after Write|Edit
+          </Text>
+          <Text>
+            • <Text bold>stop</Text> - Session end notifications + commit prompt
+          </Text>
         </Box>
         <Box marginTop={1}>
           <Text dimmed>
-            Hooks enable auto-rotation for both direct Claude CLI and ACP usage.
+            Hooks enable auto-rotation, formatting, and session notifications.
           </Text>
         </Box>
       </Box>

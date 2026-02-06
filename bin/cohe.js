@@ -109,6 +109,7 @@ async function main() {
       alert: () => importCmd("src/commands/alert/index.tsx"),
       dashboard: () => importCmd("src/commands/dashboard/index.tsx"),
       compare: () => importCmd("src/commands/compare/index.tsx"),
+      hooks: () => importCmd("src/commands/hooks/index.tsx"),
     };
 
     // Topic subcommand mapping
@@ -168,6 +169,13 @@ async function main() {
         history: () => importCmd("src/commands/compare/history.tsx"),
         view: () => importCmd("src/commands/compare/view.tsx"),
         diff: () => importCmd("src/commands/compare/diff.tsx"),
+      },
+      hooks: {
+        setup: () => importCmd("src/commands/hooks/setup.tsx"),
+        uninstall: () => importCmd("src/commands/hooks/uninstall.tsx"),
+        status: () => importCmd("src/commands/hooks/status.tsx"),
+        "post-tool": () => importCmd("src/commands/hooks/post-tool.tsx"),
+        stop: () => importCmd("src/commands/hooks/stop.tsx"),
       },
     };
 

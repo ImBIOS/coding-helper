@@ -1,6 +1,9 @@
+import * as fs from "node:fs";
 import { existsSync } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { Spinner } from "@inkjs/ui";
-import { Box, useApp } from "ink";
+import { Box, Text, useApp } from "ink";
 import { useEffect, useState } from "react";
 import * as settings from "../config/settings.js";
 import { BaseCommand } from "../oclif/base.tsx";
@@ -20,6 +23,63 @@ const PROVIDERS: Record<string, () => Provider> = {
   minimax: () => minimaxProvider,
 };
 
+interface HookCheckResult {
+  name: string;
+  description: string;
+  installed: boolean;
+}
+
+function checkHooksInstalled(): HookCheckResult[] {
+  const settingsFilePath = path.join(os.homedir(), ".claude", "settings.json");
+  const results: HookCheckResult[] = [
+    {
+      name: "SessionStart",
+      description: "Auto-rotate on startup",
+      installed: false,
+    },
+    {
+      name: "PostToolUse",
+      description: "Format files after Write|Edit",
+      installed: false,
+    },
+    {
+      name: "Stop",
+      description: "Notifications on session end",
+      installed: false,
+    },
+  ];
+
+  if (!existsSync(settingsFilePath)) {
+    return results;
+  }
+
+  try {
+    const content = fs.readFileSync(settingsFilePath, "utf-8");
+    const settingsData = JSON.parse(content);
+
+    for (const result of results) {
+      if (settingsData.hooks?.[result.name]) {
+        const hooks = settingsData.hooks[result.name] as Array<unknown>;
+        result.installed = hooks.some((hookGroup: any) => {
+          if (hookGroup.hooks && Array.isArray(hookGroup.hooks)) {
+            return hookGroup.hooks.some((hookConfig: any) => {
+              return (
+                hookConfig.type === "command" &&
+                hookConfig.command?.includes("cohe")
+              );
+            });
+          }
+          return false;
+        });
+      }
+    }
+  } catch {
+    // Ignore JSON parse errors
+  }
+
+  return results;
+}
+
 export default class Doctor extends BaseCommand<typeof Doctor> {
   static description = "Diagnose configuration issues";
   static examples = ["<%= config.bin %> doctor"];
@@ -29,9 +89,15 @@ export default class Doctor extends BaseCommand<typeof Doctor> {
     const provider = PROVIDERS[activeProvider]();
     const config = provider.getConfig();
     const configPath = settings.getConfigPath();
+    const hooksStatus = checkHooksInstalled();
 
     await this.renderApp(
-      <DoctorUI config={config} configPath={configPath} provider={provider} />
+      <DoctorUI
+        config={config}
+        configPath={configPath}
+        hooksStatus={hooksStatus}
+        provider={provider}
+      />
     );
   }
 }
@@ -40,6 +106,7 @@ interface DoctorUIProps {
   provider: Provider;
   config: ReturnType<Provider["getConfig"]>;
   configPath: string;
+  hooksStatus: HookCheckResult[];
 }
 
 interface CheckResult {
@@ -52,6 +119,7 @@ function DoctorUI({
   provider,
   config,
   configPath,
+  hooksStatus,
 }: DoctorUIProps): React.ReactElement {
   const { exit } = useApp();
   const [running, setRunning] = useState(true);
@@ -94,6 +162,9 @@ function DoctorUI({
     runDiagnostics();
   }, [provider, config, configPath, exit]);
 
+  const hooksInstalledCount = hooksStatus.filter((h) => h.installed).length;
+  const allHooksInstalled = hooksInstalledCount === hooksStatus.length;
+
   return (
     <Section title="Diagnostics">
       <Box flexDirection="column">
@@ -110,6 +181,28 @@ function DoctorUI({
                 )}
               </Box>
             ))}
+
+            <Box marginTop={1}>
+              <Text bold>Claude Code Hooks:</Text>
+            </Box>
+            {hooksStatus.map((hook) => (
+              <Box key={hook.name} marginLeft={2}>
+                {hook.installed ? (
+                  <Success>
+                    {hook.name}: {hook.description}
+                  </Success>
+                ) : (
+                  <Warning>
+                    {hook.name}: {hook.description} (not installed)
+                  </Warning>
+                )}
+              </Box>
+            ))}
+            {!allHooksInstalled && (
+              <Box marginTop={1}>
+                <Info>Run "cohe hooks setup" to install missing hooks.</Info>
+              </Box>
+            )}
 
             {issues.length > 0 ? (
               <Box flexDirection="column" marginTop={1}>

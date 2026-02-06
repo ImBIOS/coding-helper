@@ -2,30 +2,30 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Box, Text } from "ink";
-import { BaseCommand } from "../../oclif/base";
-import { Error as ErrorBadge, Info, Section, Success } from "../../ui/index";
+import { BaseCommand } from "../../oclif/base.js";
+import { Error as ErrorBadge, Info, Section, Success } from "../../ui/index.js";
 
 export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
-  static description = "Install Claude Code hooks globally";
+  static description = "Install all Claude Code hooks globally";
   static examples = ["<%= config.bin %> hooks setup"];
 
   async run(): Promise<void> {
     const claudeSettingsPath = path.join(os.homedir(), ".claude");
     const settingsFilePath = path.join(claudeSettingsPath, "settings.json");
 
-    // The hook command - using cohe CLI directly
-    // This ensures auto-updates when the cohe package is updated
-    const hookCommand = "cohe auto hook --silent";
+    // Hook commands - using cohe CLI directly for auto-updates
+    const sessionStartCommand = "cohe auto hook --silent";
+    const postToolCommand = "cohe hooks post-tool --silent";
+    const stopCommand = "cohe hooks stop --silent";
 
     try {
       // Read existing settings or create new
-      let settings: any = {};
+      let settings: Record<string, unknown> = {};
       if (fs.existsSync(settingsFilePath)) {
         const content = fs.readFileSync(settingsFilePath, "utf-8");
         try {
           settings = JSON.parse(content);
         } catch {
-          // Invalid JSON, start fresh
           settings = {};
         }
       }
@@ -35,46 +35,88 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
         settings.hooks = {};
       }
 
-      // Initialize SessionStart hooks array if it doesn't exist
+      let hooksInstalled = 0;
+      let hooksSkipped = 0;
+
+      // Install SessionStart hook (auto-rotate)
       if (!settings.hooks.SessionStart) {
         settings.hooks.SessionStart = [];
       }
-
-      // Check if our hook is already installed
-      const hookExists = settings.hooks.SessionStart.some((hookConfig: any) => {
-        return (
+      const sessionStartExists = (
+        settings.hooks.SessionStart as Array<unknown>
+      ).some(
+        (hookConfig: any) =>
           hookConfig.type === "command" &&
           hookConfig.command &&
-          (hookConfig.command === hookCommand ||
+          (hookConfig.command === sessionStartCommand ||
             hookConfig.command.includes("auto hook") ||
             hookConfig.command.includes("auto-rotate.sh"))
-        );
-      });
-
-      if (hookExists) {
-        await this.renderApp(
-          <Section title="Hooks Setup">
-            <Box flexDirection="column">
-              <Info>Auto-rotate hook is already installed.</Info>
-              <Box marginTop={1}>
-                <Text dimmed>Hook command: {hookCommand}</Text>
-              </Box>
-            </Box>
-          </Section>
-        );
-        return;
+      );
+      if (sessionStartExists) {
+        hooksSkipped++;
+      } else {
+        (settings.hooks.SessionStart as Array<unknown>).push({
+          matcher: "startup|resume|clear|compact",
+          hooks: [
+            {
+              type: "command",
+              command: sessionStartCommand,
+            },
+          ],
+        });
+        hooksInstalled++;
       }
 
-      // Add the hook configuration
-      settings.hooks.SessionStart.push({
-        matcher: "startup|resume|clear|compact",
-        hooks: [
-          {
-            type: "command",
-            command: hookCommand,
-          },
-        ],
-      });
+      // Install PostToolUse hook (format files)
+      if (!settings.hooks.PostToolUse) {
+        settings.hooks.PostToolUse = [];
+      }
+      const postToolExists = (
+        settings.hooks.PostToolUse as Array<unknown>
+      ).some(
+        (hookConfig: any) =>
+          hookConfig.type === "command" &&
+          hookConfig.command &&
+          hookConfig.command.includes("hooks post-tool")
+      );
+      if (postToolExists) {
+        hooksSkipped++;
+      } else {
+        (settings.hooks.PostToolUse as Array<unknown>).push({
+          matcher: "Write|Edit",
+          hooks: [
+            {
+              type: "command",
+              command: postToolCommand,
+            },
+          ],
+        });
+        hooksInstalled++;
+      }
+
+      // Install Stop hook (notifications)
+      if (!settings.hooks.Stop) {
+        settings.hooks.Stop = [];
+      }
+      const stopExists = (settings.hooks.Stop as Array<unknown>).some(
+        (hookConfig: any) =>
+          hookConfig.type === "command" &&
+          hookConfig.command &&
+          hookConfig.command.includes("hooks stop")
+      );
+      if (stopExists) {
+        hooksSkipped++;
+      } else {
+        (settings.hooks.Stop as Array<unknown>).push({
+          hooks: [
+            {
+              type: "command",
+              command: stopCommand,
+            },
+          ],
+        });
+        hooksInstalled++;
+      }
 
       // Write updated settings
       fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2));
@@ -82,47 +124,32 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
       await this.renderApp(
         <Section title="Hooks Setup">
           <Box flexDirection="column">
-            <Success>Auto-rotate hook installed successfully!</Success>
-            <Box marginTop={1}>
-              <Text dimmed>Hook command: {hookCommand}</Text>
-            </Box>
+            <Success>
+              Installed {hooksInstalled} hook(s), {hooksSkipped} already
+              present.
+            </Success>
             <Box marginTop={1}>
               <Text dimmed>Settings location: {settingsFilePath}</Text>
             </Box>
             <Box flexDirection="column" marginTop={1}>
-              <Info>
-                The hook will automatically rotate your API keys when you start
-                a Claude session.
-              </Info>
-              <Info>
-                Uses the cohe CLI directly, so updates to the rotation algorithm
-                are automatically applied.
-              </Info>
+              <Info>Installed hooks:</Info>
+              <Box marginLeft={2}>
+                <Text>• SessionStart: Auto-rotate API keys on startup</Text>
+              </Box>
+              <Box marginLeft={2}>
+                <Text>• PostToolUse: Format files after Write|Edit</Text>
+              </Box>
+              <Box marginLeft={2}>
+                <Text>
+                  • Stop: Notifications + commit prompt on session end
+                </Text>
+              </Box>
             </Box>
             <Box marginTop={1}>
-              <Text bold>Current configuration:</Text>
-            </Box>
-            <Box marginLeft={2}>
-              <Text>
-                • Rotation:{" "}
-                <Text bold color="green">
-                  enabled
-                </Text>
-              </Text>
-            </Box>
-            <Box marginLeft={2}>
-              <Text>
-                • Strategy:{" "}
-                <Text bold color="cyan">
-                  least-used
-                </Text>
-              </Text>
-            </Box>
-            <Box marginTop={1}>
-              <Text dimmed>
-                Run "cohe config" or "cohe auto status" to view or change
-                settings.
-              </Text>
+              <Info>
+                Uses the cohe CLI directly, so all hooks auto-update with the
+                package.
+              </Info>
             </Box>
           </Box>
         </Section>
