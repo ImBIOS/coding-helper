@@ -33,5 +33,3 @@ dist
 .local/
 *.local
 *.local.*
-*.example.*
-*.example

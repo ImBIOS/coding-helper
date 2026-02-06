@@ -77,9 +77,8 @@
     "glm",
     "minimax"
   ],
-  "license": "MIT",
   "scripts": {
-    "check-types": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "bundle": "bun build src/cli.ts --outfile=bin/cohe.bundled.js --target=node --packages=external",
     "dev": "bun --hot src/cli.ts",
     "format:ws": "bun x syncpack@alpha format",

@@ -1,5 +1,5 @@
-export { Divider, Spacer } from "./Divider.js";
-export { Section } from "./Section.js";
+export { Divider, Spacer } from "./divider.js";
+export { Section } from "./section.js";
 export {
   Debug,
   Error,
@@ -8,5 +8,5 @@ export {
   Success,
   Trace,
   Warning,
-} from "./StatusBadge.js";
+} from "./status-badge.js";
 export { Table, TableRow } from "./Table.js";

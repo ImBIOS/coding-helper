@@ -20,6 +20,7 @@ PARTIALLY_STAGED=$(git diff --name-only)
 git stash push --quiet --keep-index --message "pre-commit-stash" || true
 STASHED=$?
 
+bun run typecheck
 bun test --coverage
 
 # Run formatter on the staged files
