@@ -142,12 +142,20 @@ export async function getAutoRotatedEnv(
   const activeAccount = accountsConfig.getActiveAccount();
 
   if (activeAccount) {
+    // Determine the model to use based on provider
+    let model = activeAccount.defaultModel;
+    if (activeAccount.provider === "zai") {
+      model = "GLM-4.7";
+    } else if (activeAccount.provider === "minimax") {
+      model = "MiniMax-M2.1";
+    }
+
     // Build environment - only disable non-essential traffic for MiniMax
     const env: Record<string, string | undefined> = {
       ...process.env,
       ANTHROPIC_AUTH_TOKEN: activeAccount.apiKey,
       ANTHROPIC_BASE_URL: activeAccount.baseUrl,
-      // ANTHROPIC_MODEL is NOT set - providers handle translation
+      ANTHROPIC_MODEL: model,
       API_TIMEOUT_MS: "3000000",
     };
 
@@ -173,7 +181,7 @@ export async function getAutoRotatedEnv(
     ...process.env,
     ANTHROPIC_AUTH_TOKEN: providerConfig.apiKey,
     ANTHROPIC_BASE_URL: providerConfig.baseUrl,
-    // ANTHROPIC_MODEL is NOT set - providers handle translation
+    ANTHROPIC_MODEL: providerConfig.defaultModel,
     API_TIMEOUT_MS: "3000000",
   };
 
@@ -293,12 +301,20 @@ function getAutoRotatedEnvSync(): Record<string, string | undefined> {
   const activeAccount = accountsConfig.getActiveAccount();
 
   if (activeAccount) {
+    // Determine the model to use based on provider
+    let model = activeAccount.defaultModel;
+    if (activeAccount.provider === "zai") {
+      model = "GLM-4.7";
+    } else if (activeAccount.provider === "minimax") {
+      model = "MiniMax-M2.1";
+    }
+
     // Build environment - only disable non-essential traffic for MiniMax
     const env: Record<string, string | undefined> = {
       ...process.env,
       ANTHROPIC_AUTH_TOKEN: activeAccount.apiKey,
       ANTHROPIC_BASE_URL: activeAccount.baseUrl,
-      // ANTHROPIC_MODEL is NOT set - providers handle translation
+      ANTHROPIC_MODEL: model,
       API_TIMEOUT_MS: "3000000",
     };
 
@@ -324,7 +340,7 @@ function getAutoRotatedEnvSync(): Record<string, string | undefined> {
     ...process.env,
     ANTHROPIC_AUTH_TOKEN: providerConfig.apiKey,
     ANTHROPIC_BASE_URL: providerConfig.baseUrl,
-    // ANTHROPIC_MODEL is NOT set - providers handle translation
+    ANTHROPIC_MODEL: providerConfig.defaultModel,
     API_TIMEOUT_MS: "3000000",
   };
 

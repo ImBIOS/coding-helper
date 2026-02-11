@@ -1,5 +1,6 @@
 import { Args } from "@oclif/core";
 import { Box } from "ink";
+import { deleteAccount } from "../../../config/accounts-config.js";
 import { BaseCommand } from "../../oclif/base.tsx";
 import { Error as ErrorBadge, Success } from "../../ui/index.js";
 
@@ -17,7 +18,7 @@ export default class AccountRemove extends BaseCommand<typeof AccountRemove> {
   async run(): Promise<void> {
     const id = this.args.id;
 
-    if (accountsConfig.deleteAccount(id)) {
+    if (deleteAccount(id)) {
       await this.renderApp(
         <Box>
           <Success>Account {id} removed.</Success>

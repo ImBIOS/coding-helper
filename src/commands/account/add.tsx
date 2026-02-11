@@ -1,6 +1,7 @@
 import { PasswordInput, Select, TextInput } from "@inkjs/ui";
 import { Box, Text, useApp } from "ink";
 import { useState } from "react";
+import { addAccount } from "../../../config/accounts-config.js";
 import { BaseCommand } from "../../oclif/base.tsx";
 import { Error as ErrorBadge, Info, Section, Success } from "../../ui/index.js";
 import type { Provider } from "../providers/base.js";

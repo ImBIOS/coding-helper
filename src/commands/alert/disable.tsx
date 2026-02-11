@@ -1,5 +1,6 @@
 import { Args } from "@oclif/core";
 import { Box } from "ink";
+import { updateAlert } from "../../../config/accounts-config.js";
 import { BaseCommand } from "../../oclif/base.tsx";
 import { Success } from "../../ui/index.js";
 
@@ -16,7 +17,7 @@ export default class AlertDisable extends BaseCommand<typeof AlertDisable> {
 
   async run(): Promise<void> {
     const id = this.args.id;
-    accountsConfig.updateAlert(id, { enabled: false });
+    updateAlert(id, { enabled: false });
 
     await this.renderApp(
       <Box>

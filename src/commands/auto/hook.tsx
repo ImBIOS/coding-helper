@@ -1,9 +1,9 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { Flags } from "@oclif/core";
-import * as accountsConfig from "../../config/accounts-config.ts";
-import { BaseCommand } from "../../oclif/base.ts";
+import * as accountsConfig from "../../config/accounts-config.js";
+import { BaseCommand } from "../../oclif/base.js";
 
 /**
  * Hook command for Claude Code SessionStart event.
@@ -67,11 +67,11 @@ export default class AutoHook extends BaseCommand<typeof AutoHook> {
     // Update settings.json with current account credentials
     // This is what Claude Code will use for the current session
     // Use HOME env var if set (for testing), otherwise use os.homedir()
-    const homeDir = process.env.HOME || os.homedir();
-    const settingsFilePath = path.join(homeDir, ".claude", "settings.json");
-    if (fs.existsSync(settingsFilePath)) {
+    const homeDir = process.env.HOME || homedir();
+    const settingsFilePath = join(homeDir, ".claude", "settings.json");
+    if (existsSync(settingsFilePath)) {
       try {
-        const settingsContent = fs.readFileSync(settingsFilePath, "utf-8");
+        const settingsContent = readFileSync(settingsFilePath, "utf-8");
         const settings = JSON.parse(settingsContent);
 
         // Determine the model to use based on provider
@@ -94,8 +94,8 @@ export default class AutoHook extends BaseCommand<typeof AutoHook> {
         // Atomic write: write to temp file first, then rename
         // This prevents data loss if write fails midway
         const tempFilePath = `${settingsFilePath}.tmp`;
-        fs.writeFileSync(tempFilePath, JSON.stringify(settings, null, 2));
-        fs.renameSync(tempFilePath, settingsFilePath);
+        writeFileSync(tempFilePath, JSON.stringify(settings, null, 2));
+        renameSync(tempFilePath, settingsFilePath);
       } catch (error) {
         // Silent fail - don't break the session if settings update fails
         if (!flags.silent) {

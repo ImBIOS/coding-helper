@@ -1,5 +1,6 @@
 import { Args } from "@oclif/core";
 import { Box } from "ink";
+import { switchAccount } from "../../../config/accounts-config.js";
 import { BaseCommand } from "../../oclif/base.tsx";
 import { Error as ErrorBadge, Success } from "../../ui/index.js";
 
@@ -17,7 +18,7 @@ export default class AccountSwitch extends BaseCommand<typeof AccountSwitch> {
   async run(): Promise<void> {
     const id = this.args.id;
 
-    if (accountsConfig.switchAccount(id)) {
+    if (switchAccount(id)) {
       await this.renderApp(
         <Box>
           <Success>Switched to account {id}</Success>

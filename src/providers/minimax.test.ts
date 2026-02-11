@@ -205,7 +205,8 @@ describe("MiniMaxProvider", () => {
                 end_time: 1_770_008_400_000,
                 remains_time: 9_701_871,
                 current_interval_total_count: 1500,
-                current_interval_usage_count: 500,
+                // Note: This field name is misleading - it actually contains "remaining", not "used"
+                current_interval_usage_count: 1000,
                 model_name: "MiniMax-M2.1",
               },
             ],

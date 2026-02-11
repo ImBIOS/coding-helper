@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 import type React from "react";
+import { loadConfig } from "../../../config/accounts-config.js";
 import { BaseCommand } from "../../oclif/base.tsx";
 import { Info, Section } from "../../ui/index.js";
 
@@ -8,7 +9,7 @@ export default class AlertList extends BaseCommand<typeof AlertList> {
   static examples = ["<%= config.bin %> alert list"];
 
   async run(): Promise<void> {
-    const config = accountsConfig.loadConfig();
+    const config = loadConfig();
     await this.renderApp(<AlertListUI alerts={config.alerts} />);
   }
 }
