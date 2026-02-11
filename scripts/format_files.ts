@@ -15,6 +15,9 @@ const colors = {
   NC: "\x1b[0m",
 };
 
+// Top-level regex for performance
+const FILE_EXT_REGEX = /\.[^/.]+$/;
+
 function isTty(): boolean {
   return Bun.stdout?.isTTY ?? false;
 }
@@ -117,11 +120,11 @@ async function formatShell(file: string): Promise<boolean> {
   return false;
 }
 
-async function formatJson(file: string): Promise<boolean> {
+function formatJson(file: string): boolean {
   try {
     const content = readFileSync(file, "utf-8");
     const parsed = JSON.parse(content);
-    writeFileSync(file, JSON.stringify(parsed, null, 2) + "\n");
+    writeFileSync(file, `${JSON.stringify(parsed, null, 2)}\n`);
     return true;
   } catch {
     return false;
@@ -153,7 +156,7 @@ async function formatFile(file: string): Promise<boolean> {
 
   const filename = basename(file);
   const ext = extname(file).slice(1).toLowerCase();
-  const base = filename.replace(/\.[^/.]+$/, "");
+  const base = filename.replace(FILE_EXT_REGEX, "");
 
   switch (ext) {
     case "js":
@@ -219,7 +222,7 @@ async function formatFile(file: string): Promise<boolean> {
   }
 }
 
-async function extractFilePathFromJson(input: string): Promise<string | null> {
+function extractFilePathFromJson(input: string): string | null {
   try {
     const data = JSON.parse(input);
 
