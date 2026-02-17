@@ -9,6 +9,7 @@ interface StatusBadgeProps {
   level: LogLevel;
   children: React.ReactNode;
   showTimestamp?: boolean;
+  inline?: boolean;
 }
 
 const LEVEL_COLORS: Record<LogLevel, LevelColor> = {
@@ -37,6 +38,7 @@ export function StatusBadge({
   level,
   children,
   showTimestamp = false,
+  inline = false,
 }: StatusBadgeProps): React.ReactElement {
   const color = LEVEL_COLORS[level];
   const prefix = LEVEL_PREFIXES[level];
@@ -53,48 +55,84 @@ export function StatusBadge({
 // Convenience components for common status types
 export function Success({
   children,
+  inline,
 }: {
   children: React.ReactNode;
+  inline?: boolean;
 }): React.ReactElement {
-  return <StatusBadge level="success">{children}</StatusBadge>;
+  return (
+    <StatusBadge inline={inline} level="success">
+      {children}
+    </StatusBadge>
+  );
 }
 
 export function Info({
   children,
+  inline,
 }: {
   children: React.ReactNode;
+  inline?: boolean;
 }): React.ReactElement {
-  return <StatusBadge level="info">{children}</StatusBadge>;
+  return (
+    <StatusBadge inline={inline} level="info">
+      {children}
+    </StatusBadge>
+  );
 }
 
 export function Warning({
   children,
+  inline,
 }: {
   children: React.ReactNode;
+  inline?: boolean;
 }): React.ReactElement {
-  return <StatusBadge level="warning">{children}</StatusBadge>;
+  return (
+    <StatusBadge inline={inline} level="warning">
+      {children}
+    </StatusBadge>
+  );
 }
 
 export function Error({
   children,
+  inline,
 }: {
   children: React.ReactNode;
+  inline?: boolean;
 }): React.ReactElement {
-  return <StatusBadge level="error">{children}</StatusBadge>;
+  return (
+    <StatusBadge inline={inline} level="error">
+      {children}
+    </StatusBadge>
+  );
 }
 
 export function Debug({
   children,
+  inline,
 }: {
   children: React.ReactNode;
+  inline?: boolean;
 }): React.ReactElement {
-  return <StatusBadge level="debug">{children}</StatusBadge>;
+  return (
+    <StatusBadge inline={inline} level="debug">
+      {children}
+    </StatusBadge>
+  );
 }
 
 export function Trace({
   children,
+  inline,
 }: {
   children: React.ReactNode;
+  inline?: boolean;
 }): React.ReactElement {
-  return <StatusBadge level="trace">{children}</StatusBadge>;
+  return (
+    <StatusBadge inline={inline} level="trace">
+      {children}
+    </StatusBadge>
+  );
 }

@@ -1,6 +1,6 @@
 import { Box, Text } from "ink";
 import type React from "react";
-import { loadConfig } from "../../../config/accounts-config";
+import { loadConfig } from "../../config/accounts-config";
 import { BaseCommand } from "../../oclif/base";
 import { Info, Section } from "../../ui/index";
 

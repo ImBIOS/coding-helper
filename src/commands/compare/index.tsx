@@ -2,6 +2,8 @@ import * as readline from "node:readline";
 import { Args, Flags } from "@oclif/core";
 import { Box, render } from "ink";
 import { BaseCommand } from "../../oclif/base";
+import { minimaxProvider } from "../../providers/minimax";
+import { zaiProvider } from "../../providers/zai";
 import { Error as ErrorBadge } from "../../ui/index";
 import { spawnClaudeInstance } from "../../utils/claude-spawner";
 import {
@@ -14,8 +16,6 @@ import {
   symlinkProjectFiles,
 } from "../../utils/isolation";
 import { CompareUI } from "../compare-ui";
-import { minimaxProvider } from "../providers/minimax";
-import { zaiProvider } from "../providers/zai";
 
 export default class Compare extends BaseCommand<typeof Compare> {
   static description = "Side-by-side Claude comparison between providers";

@@ -1,6 +1,6 @@
 import { Args } from "@oclif/core";
 import { Box } from "ink";
-import { deleteAccount } from "../../../config/accounts-config";
+import { deleteAccount } from "../../config/accounts-config";
 import { BaseCommand } from "../../oclif/base";
 import { Error as ErrorBadge, Success } from "../../ui/index";
 

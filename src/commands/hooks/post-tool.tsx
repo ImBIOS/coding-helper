@@ -350,7 +350,7 @@ export default class PostTool extends BaseCommand<typeof PostTool> {
           <Section title="Post-Tool Format">
             <Info>No files to format.</Info>
             <Box marginTop={1}>
-              <Text dimmed>
+              <Text dimColor>
                 Usage: cohe hooks post-tool [--verbose] [--all] [files...]
               </Text>
             </Box>

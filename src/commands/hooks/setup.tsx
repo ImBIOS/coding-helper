@@ -5,6 +5,27 @@ import { Box, Text } from "ink";
 import { BaseCommand } from "../../oclif/base";
 import { Error as ErrorBadge, Info, Section, Success } from "../../ui/index";
 
+interface HookConfig {
+  type: string;
+  command: string;
+}
+
+interface HookGroup {
+  matcher?: string;
+  hooks: HookConfig[];
+}
+
+interface HooksConfig {
+  SessionStart?: HookGroup[];
+  PostToolUse?: HookGroup[];
+  Stop?: HookGroup[];
+}
+
+interface ClaudeSettings {
+  hooks?: HooksConfig;
+  [key: string]: unknown;
+}
+
 export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
   static description = "Install all Claude Code hooks globally";
   static examples = ["<%= config.bin %> hooks setup"];
@@ -20,11 +41,11 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
 
     try {
       // Read existing settings or create new
-      let settings: Record<string, unknown> = {};
+      let settings: ClaudeSettings = {};
       if (fs.existsSync(settingsFilePath)) {
         const content = fs.readFileSync(settingsFilePath, "utf-8");
         try {
-          settings = JSON.parse(content);
+          settings = JSON.parse(content) as ClaudeSettings;
         } catch {
           settings = {};
         }
@@ -42,20 +63,20 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
       if (!settings.hooks.SessionStart) {
         settings.hooks.SessionStart = [];
       }
-      const sessionStartExists = (
-        settings.hooks.SessionStart as Array<unknown>
-      ).some(
-        (hookConfig: any) =>
-          hookConfig.type === "command" &&
-          hookConfig.command &&
-          (hookConfig.command === sessionStartCommand ||
-            hookConfig.command.includes("auto hook") ||
-            hookConfig.command.includes("auto-rotate.sh"))
+      const sessionStartExists = settings.hooks.SessionStart.some((hookGroup) =>
+        hookGroup.hooks.some(
+          (hookConfig) =>
+            hookConfig.type === "command" &&
+            hookConfig.command &&
+            (hookConfig.command === sessionStartCommand ||
+              hookConfig.command.includes("auto hook") ||
+              hookConfig.command.includes("auto-rotate.sh"))
+        )
       );
       if (sessionStartExists) {
         hooksSkipped++;
       } else {
-        (settings.hooks.SessionStart as Array<unknown>).push({
+        settings.hooks.SessionStart.push({
           matcher: "startup|resume|clear|compact",
           hooks: [
             {
@@ -71,18 +92,18 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
       if (!settings.hooks.PostToolUse) {
         settings.hooks.PostToolUse = [];
       }
-      const postToolExists = (
-        settings.hooks.PostToolUse as Array<unknown>
-      ).some(
-        (hookConfig: any) =>
-          hookConfig.type === "command" &&
-          hookConfig.command &&
-          hookConfig.command.includes("hooks post-tool")
+      const postToolExists = settings.hooks.PostToolUse.some((hookGroup) =>
+        hookGroup.hooks.some(
+          (hookConfig) =>
+            hookConfig.type === "command" &&
+            hookConfig.command &&
+            hookConfig.command.includes("hooks post-tool")
+        )
       );
       if (postToolExists) {
         hooksSkipped++;
       } else {
-        (settings.hooks.PostToolUse as Array<unknown>).push({
+        settings.hooks.PostToolUse.push({
           matcher: "Write|Edit",
           hooks: [
             {
@@ -98,16 +119,18 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
       if (!settings.hooks.Stop) {
         settings.hooks.Stop = [];
       }
-      const stopExists = (settings.hooks.Stop as Array<unknown>).some(
-        (hookConfig: any) =>
-          hookConfig.type === "command" &&
-          hookConfig.command &&
-          hookConfig.command.includes("hooks stop")
+      const stopExists = settings.hooks.Stop.some((hookGroup) =>
+        hookGroup.hooks.some(
+          (hookConfig) =>
+            hookConfig.type === "command" &&
+            hookConfig.command &&
+            hookConfig.command.includes("hooks stop")
+        )
       );
       if (stopExists) {
         hooksSkipped++;
       } else {
-        (settings.hooks.Stop as Array<unknown>).push({
+        settings.hooks.Stop.push({
           hooks: [
             {
               type: "command",
@@ -129,7 +152,7 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
               present.
             </Success>
             <Box marginTop={1}>
-              <Text dimmed>Settings location: {settingsFilePath}</Text>
+              <Text dimColor>Settings location: {settingsFilePath}</Text>
             </Box>
             <Box flexDirection="column" marginTop={1}>
               <Info>Installed hooks:</Info>
@@ -154,13 +177,14 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
           </Box>
         </Section>
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       await this.renderApp(
         <Section title="Hooks Setup">
           <Box flexDirection="column">
             <ErrorBadge>Failed to install hooks</ErrorBadge>
             <Box marginTop={1}>
-              <Text color="red">{error.message}</Text>
+              <Text color="red">{err.message}</Text>
             </Box>
           </Box>
         </Section>

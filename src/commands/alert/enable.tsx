@@ -1,6 +1,6 @@
 import { Args } from "@oclif/core";
 import { Box } from "ink";
-import { updateAlert } from "../../../config/accounts-config";
+import { updateAlert } from "../../config/accounts-config";
 import { BaseCommand } from "../../oclif/base";
 import { Success } from "../../ui/index";
 

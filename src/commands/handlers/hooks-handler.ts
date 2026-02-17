@@ -3,6 +3,27 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { error, info, section, success, warning } from "../../utils/logger";
 
+interface HookConfig {
+  type: string;
+  command: string;
+}
+
+interface HookGroup {
+  matcher?: string;
+  hooks: HookConfig[];
+}
+
+interface HooksConfig {
+  SessionStart?: HookGroup[];
+  PostToolUse?: HookGroup[];
+  Stop?: HookGroup[];
+}
+
+interface ClaudeSettings {
+  hooks?: HooksConfig;
+  [key: string]: unknown;
+}
+
 export async function handleHooksSetup(): Promise<void> {
   const claudeSettingsPath = path.join(os.homedir(), ".claude");
   const settingsFilePath = path.join(claudeSettingsPath, "settings.json");
@@ -14,11 +35,11 @@ export async function handleHooksSetup(): Promise<void> {
 
   try {
     // Read existing settings or create new
-    let settings: Record<string, unknown> = {};
+    let settings: ClaudeSettings = {};
     if (fs.existsSync(settingsFilePath)) {
       const content = fs.readFileSync(settingsFilePath, "utf-8");
       try {
-        settings = JSON.parse(content);
+        settings = JSON.parse(content) as ClaudeSettings;
       } catch {
         settings = {};
       }
@@ -36,20 +57,20 @@ export async function handleHooksSetup(): Promise<void> {
     if (!settings.hooks.SessionStart) {
       settings.hooks.SessionStart = [];
     }
-    const sessionStartExists = (
-      settings.hooks.SessionStart as Array<unknown>
-    ).some(
-      (hookConfig: any) =>
-        hookConfig.type === "command" &&
-        hookConfig.command &&
-        (hookConfig.command === sessionStartCommand ||
-          hookConfig.command.includes("auto hook") ||
-          hookConfig.command.includes("auto-rotate.sh"))
+    const sessionStartExists = settings.hooks.SessionStart.some((hookGroup) =>
+      hookGroup.hooks.some(
+        (hookConfig) =>
+          hookConfig.type === "command" &&
+          hookConfig.command &&
+          (hookConfig.command === sessionStartCommand ||
+            hookConfig.command.includes("auto hook") ||
+            hookConfig.command.includes("auto-rotate.sh"))
+      )
     );
     if (sessionStartExists) {
       hooksSkipped++;
     } else {
-      (settings.hooks.SessionStart as Array<unknown>).push({
+      settings.hooks.SessionStart.push({
         matcher: "startup|resume|clear|compact",
         hooks: [
           {
@@ -65,16 +86,18 @@ export async function handleHooksSetup(): Promise<void> {
     if (!settings.hooks.PostToolUse) {
       settings.hooks.PostToolUse = [];
     }
-    const postToolExists = (settings.hooks.PostToolUse as Array<unknown>).some(
-      (hookConfig: any) =>
-        hookConfig.type === "command" &&
-        hookConfig.command &&
-        hookConfig.command.includes("hooks post-tool")
+    const postToolExists = settings.hooks.PostToolUse.some((hookGroup) =>
+      hookGroup.hooks.some(
+        (hookConfig) =>
+          hookConfig.type === "command" &&
+          hookConfig.command &&
+          hookConfig.command.includes("hooks post-tool")
+      )
     );
     if (postToolExists) {
       hooksSkipped++;
     } else {
-      (settings.hooks.PostToolUse as Array<unknown>).push({
+      settings.hooks.PostToolUse.push({
         matcher: "Write|Edit",
         hooks: [
           {
@@ -90,16 +113,18 @@ export async function handleHooksSetup(): Promise<void> {
     if (!settings.hooks.Stop) {
       settings.hooks.Stop = [];
     }
-    const stopExists = (settings.hooks.Stop as Array<unknown>).some(
-      (hookConfig: any) =>
-        hookConfig.type === "command" &&
-        hookConfig.command &&
-        hookConfig.command.includes("hooks stop")
+    const stopExists = settings.hooks.Stop.some((hookGroup) =>
+      hookGroup.hooks.some(
+        (hookConfig) =>
+          hookConfig.type === "command" &&
+          hookConfig.command &&
+          hookConfig.command.includes("hooks stop")
+      )
     );
     if (stopExists) {
       hooksSkipped++;
     } else {
-      (settings.hooks.Stop as Array<unknown>).push({
+      settings.hooks.Stop.push({
         hooks: [
           {
             type: "command",
@@ -153,10 +178,10 @@ export async function handleHooksUninstall(): Promise<void> {
     // Update settings.json to remove all cohe hooks
     if (fs.existsSync(settingsFilePath)) {
       const content = fs.readFileSync(settingsFilePath, "utf-8");
-      let settings: Record<string, unknown>;
+      let settings: ClaudeSettings;
 
       try {
-        settings = JSON.parse(content);
+        settings = JSON.parse(content) as ClaudeSettings;
       } catch {
         settings = {};
       }
@@ -165,46 +190,40 @@ export async function handleHooksUninstall(): Promise<void> {
 
       for (const hookType of hookTypes) {
         if (settings.hooks?.[hookType]) {
-          const originalLength = (settings.hooks[hookType] as Array<unknown>)
-            .length;
+          const originalLength = settings.hooks[hookType].length;
 
-          (settings.hooks[hookType] as Array<unknown>) = (
-            settings.hooks[hookType] as Array<unknown>
-          ).filter((hookGroup: any) => {
-            if (!(hookGroup.hooks && Array.isArray(hookGroup.hooks))) {
-              return true;
-            }
-
-            const hasOurHook = hookGroup.hooks.some((hookConfig: any) => {
-              if (hookConfig.type !== "command" || !hookConfig.command) {
-                return false;
+          settings.hooks[hookType] = settings.hooks[hookType].filter(
+            (hookGroup) => {
+              if (!(hookGroup.hooks && Array.isArray(hookGroup.hooks))) {
+                return true;
               }
 
-              const cmd = hookConfig.command;
-              return (
-                cmd === hookScriptPath ||
-                cmd.includes("auto-rotate.sh") ||
-                cmd.includes("auto hook") ||
-                cmd === "cohe auto hook --silent" ||
-                cmd.includes("hooks post-tool") ||
-                cmd.includes("hooks stop")
-              );
-            });
+              const hasOurHook = hookGroup.hooks.some((hookConfig) => {
+                if (hookConfig.type !== "command" || !hookConfig.command) {
+                  return false;
+                }
 
-            return !hasOurHook;
-          });
+                const cmd = hookConfig.command;
+                return (
+                  cmd === hookScriptPath ||
+                  cmd.includes("auto-rotate.sh") ||
+                  cmd.includes("auto hook") ||
+                  cmd === "cohe auto hook --silent" ||
+                  cmd.includes("hooks post-tool") ||
+                  cmd.includes("hooks stop")
+                );
+              });
 
-          if (
-            (settings.hooks[hookType] as Array<unknown>).length !==
-            originalLength
-          ) {
-            hooksRemoved +=
-              originalLength -
-              (settings.hooks[hookType] as Array<unknown>).length;
+              return !hasOurHook;
+            }
+          );
+
+          if (settings.hooks[hookType].length !== originalLength) {
+            hooksRemoved += originalLength - settings.hooks[hookType].length;
             settingsModified = true;
 
             // Clean up empty arrays
-            if ((settings.hooks[hookType] as Array<unknown>).length === 0) {
+            if (settings.hooks[hookType].length === 0) {
               delete settings.hooks[hookType];
             }
           }
@@ -213,7 +232,7 @@ export async function handleHooksUninstall(): Promise<void> {
 
       // Clean up empty hooks object
       if (settings.hooks && Object.keys(settings.hooks).length === 0) {
-        settings.hooks = undefined;
+        delete settings.hooks;
       }
 
       if (settingsModified) {
@@ -294,15 +313,15 @@ export async function handleHooksStatus(): Promise<void> {
   if (fs.existsSync(settingsFilePath)) {
     try {
       const content = fs.readFileSync(settingsFilePath, "utf-8");
-      const settings = JSON.parse(content);
+      const settings = JSON.parse(content) as ClaudeSettings;
       settingsFound = true;
 
       for (const hook of hooks) {
-        if (settings.hooks?.[hook.name]) {
-          (settings.hooks[hook.name] as Array<unknown>).forEach(
-            (hookGroup: any) => {
+        if (settings.hooks?.[hook.name as keyof HooksConfig]) {
+          settings.hooks[hook.name as keyof HooksConfig]?.forEach(
+            (hookGroup) => {
               if (hookGroup.hooks && Array.isArray(hookGroup.hooks)) {
-                hookGroup.hooks.forEach((hookConfig: any) => {
+                hookGroup.hooks.forEach((hookConfig) => {
                   if (
                     hookConfig.type === "command" &&
                     hookConfig.command &&

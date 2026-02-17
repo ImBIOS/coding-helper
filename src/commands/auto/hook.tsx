@@ -74,19 +74,13 @@ export default class AutoHook extends BaseCommand<typeof AutoHook> {
         const settingsContent = readFileSync(settingsFilePath, "utf-8");
         const settings = JSON.parse(settingsContent);
 
-        // Determine the model to use based on provider
-        let model = currentAccount.defaultModel;
-        if (currentAccount.provider === "zai") {
-          model = "GLM-4.7";
-        } else if (currentAccount.provider === "minimax") {
-          model = "MiniMax-M2.1";
-        }
-
         // Update the env section
+        // Note: ANTHROPIC_MODEL is NOT set here - it causes errors when
+        // switching providers on-the-fly. The provider and model are
+        // determined via activeModelProviderId in .claude/settings.json
         settings.env = {
           ANTHROPIC_AUTH_TOKEN: currentAccount.apiKey,
           ANTHROPIC_BASE_URL: currentAccount.baseUrl,
-          ANTHROPIC_MODEL: model,
           API_TIMEOUT_MS: "3000000",
           CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1,
         };

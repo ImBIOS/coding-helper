@@ -3,10 +3,10 @@ import { Box, Text, useApp } from "ink";
 import { useState } from "react";
 import * as profiles from "../../config/profiles";
 import { BaseCommand } from "../../oclif/base";
+import type { Provider } from "../../providers/base";
+import { minimaxProvider } from "../../providers/minimax";
+import { zaiProvider } from "../../providers/zai";
 import { Error as ErrorBadge, Section, Success } from "../../ui/index";
-import type { Provider } from "../providers/base";
-import { minimaxProvider } from "../providers/minimax";
-import { zaiProvider } from "../providers/zai";
 
 const PROVIDERS: Record<string, () => Provider> = {
   zai: () => zaiProvider,

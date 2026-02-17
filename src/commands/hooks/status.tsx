@@ -5,6 +5,27 @@ import { Box, Text } from "ink";
 import { BaseCommand } from "../../oclif/base";
 import { Error as ErrorBadge, Section, Success, Warning } from "../../ui/index";
 
+interface HookConfig {
+  type: string;
+  command: string;
+}
+
+interface HookGroup {
+  matcher?: string;
+  hooks: HookConfig[];
+}
+
+interface HooksConfig {
+  SessionStart?: HookGroup[];
+  PostToolUse?: HookGroup[];
+  Stop?: HookGroup[];
+}
+
+interface ClaudeSettings {
+  hooks?: HooksConfig;
+  [key: string]: unknown;
+}
+
 interface HookCheckResult {
   name: string;
   command: string;
@@ -57,30 +78,32 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
     if (fs.existsSync(settingsFilePath)) {
       try {
         const content = fs.readFileSync(settingsFilePath, "utf-8");
-        const settings = JSON.parse(content);
+        const settings = JSON.parse(content) as ClaudeSettings;
         settingsFound = true;
 
         for (const hook of hooks) {
-          if (settings.hooks?.[hook.name]) {
-            const hookArray = settings.hooks[hook.name] as Array<unknown>;
-            for (const hookGroup of hookArray) {
-              if (hookGroup.hooks && Array.isArray(hookGroup.hooks)) {
-                for (const hookConfig of hookGroup.hooks) {
-                  if (hookConfig.type === "command" && hookConfig.command) {
-                    const cmd = hookConfig.command;
-                    // Check if command matches our hook
-                    const subcommand = hook.command.split(" ")[1]; // "auto", "hooks post-tool", "hooks stop"
-                    if (
-                      cmd.includes(subcommand) ||
-                      cmd.includes(hook.hookType)
-                    ) {
-                      hook.registered = true;
-                      break;
+          if (settings.hooks?.[hook.name as keyof HooksConfig]) {
+            const hookArray = settings.hooks[hook.name as keyof HooksConfig];
+            if (hookArray) {
+              for (const hookGroup of hookArray) {
+                if (hookGroup.hooks && Array.isArray(hookGroup.hooks)) {
+                  for (const hookConfig of hookGroup.hooks) {
+                    if (hookConfig.type === "command" && hookConfig.command) {
+                      const cmd = hookConfig.command;
+                      // Check if command matches our hook
+                      const subcommand = hook.command.split(" ")[1]; // "auto", "hooks post-tool", "hooks stop"
+                      if (
+                        cmd.includes(subcommand) ||
+                        cmd.includes(hook.hookType)
+                      ) {
+                        hook.registered = true;
+                        break;
+                      }
                     }
                   }
                 }
+                if (hook.registered) break;
               }
-              if (hook.registered) break;
             }
           }
         }
@@ -131,7 +154,7 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
               ) : (
                 <ErrorBadge inline>{hook.name}</ErrorBadge>
               )}
-              <Text dimmed> ({hook.hookType})</Text>
+              <Text dimColor> ({hook.hookType})</Text>
             </Box>
           ))}
 
@@ -143,14 +166,12 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
                 {scriptExecutable ? "Found" : "Not Executable"}
               </Success>
             ) : (
-              <Text dimmed inline>
-                Not Found (using CLI command)
-              </Text>
+              <Text dimColor>Not Found (using CLI command)</Text>
             )}
           </Box>
           {scriptExists && (
             <Box marginLeft={2}>
-              <Text dimmed>{hookScriptPath}</Text>
+              <Text dimColor>{hookScriptPath}</Text>
             </Box>
           )}
 
@@ -165,7 +186,7 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
           </Box>
           {settingsFound && !someHooksInstalled && (
             <Box marginLeft={2}>
-              <Text dimmed>{settingsFilePath}</Text>
+              <Text dimColor>{settingsFilePath}</Text>
             </Box>
           )}
 
@@ -175,17 +196,13 @@ export default class HooksStatus extends BaseCommand<typeof HooksStatus> {
             {rotationEnabled ? (
               <Success inline>Yes</Success>
             ) : (
-              <Text color="yellow" inline>
-                No
-              </Text>
+              <Text color="yellow">No</Text>
             )}
           </Box>
 
           <Box marginTop={1}>
             <Text bold>Rotation Strategy: </Text>
-            <Text color="cyan" inline>
-              {rotationStrategy}
-            </Text>
+            <Text color="cyan">{rotationStrategy}</Text>
           </Box>
 
           {/* Actions */}

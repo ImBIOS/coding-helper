@@ -5,6 +5,27 @@ import { Box, Text } from "ink";
 import { BaseCommand } from "../../oclif/base";
 import { Error as ErrorBadge, Info, Section, Success } from "../../ui/index";
 
+interface HookConfig {
+  type: string;
+  command: string;
+}
+
+interface HookGroup {
+  matcher?: string;
+  hooks: HookConfig[];
+}
+
+interface HooksConfig {
+  SessionStart?: HookGroup[];
+  PostToolUse?: HookGroup[];
+  Stop?: HookGroup[];
+}
+
+interface ClaudeSettings {
+  hooks?: HooksConfig;
+  [key: string]: unknown;
+}
+
 export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
   static description = "Remove all Claude Code hooks";
   static examples = ["<%= config.bin %> hooks uninstall"];
@@ -32,10 +53,10 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
       // Update settings.json to remove all cohe hooks
       if (fs.existsSync(settingsFilePath)) {
         const content = fs.readFileSync(settingsFilePath, "utf-8");
-        let settings: Record<string, unknown>;
+        let settings: ClaudeSettings;
 
         try {
-          settings = JSON.parse(content);
+          settings = JSON.parse(content) as ClaudeSettings;
         } catch {
           settings = {};
         }
@@ -44,46 +65,40 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
 
         for (const hookType of hookTypes) {
           if (settings.hooks?.[hookType]) {
-            const originalLength = (settings.hooks[hookType] as Array<unknown>)
-              .length;
+            const originalLength = settings.hooks[hookType].length;
 
-            (settings.hooks[hookType] as Array<unknown>) = (
-              settings.hooks[hookType] as Array<unknown>
-            ).filter((hookGroup: any) => {
-              if (!(hookGroup.hooks && Array.isArray(hookGroup.hooks))) {
-                return true;
-              }
-
-              const hasOurHook = hookGroup.hooks.some((hookConfig: any) => {
-                if (hookConfig.type !== "command" || !hookConfig.command) {
-                  return false;
+            settings.hooks[hookType] = settings.hooks[hookType].filter(
+              (hookGroup) => {
+                if (!(hookGroup.hooks && Array.isArray(hookGroup.hooks))) {
+                  return true;
                 }
 
-                const cmd = hookConfig.command;
-                return (
-                  cmd === hookScriptPath ||
-                  cmd.includes("auto-rotate.sh") ||
-                  cmd.includes("auto hook") ||
-                  cmd === "cohe auto hook --silent" ||
-                  cmd.includes("hooks post-tool") ||
-                  cmd.includes("hooks stop")
-                );
-              });
+                const hasOurHook = hookGroup.hooks.some((hookConfig) => {
+                  if (hookConfig.type !== "command" || !hookConfig.command) {
+                    return false;
+                  }
 
-              return !hasOurHook;
-            });
+                  const cmd = hookConfig.command;
+                  return (
+                    cmd === hookScriptPath ||
+                    cmd.includes("auto-rotate.sh") ||
+                    cmd.includes("auto hook") ||
+                    cmd === "cohe auto hook --silent" ||
+                    cmd.includes("hooks post-tool") ||
+                    cmd.includes("hooks stop")
+                  );
+                });
 
-            if (
-              (settings.hooks[hookType] as Array<unknown>).length !==
-              originalLength
-            ) {
-              hooksRemoved +=
-                originalLength -
-                (settings.hooks[hookType] as Array<unknown>).length;
+                return !hasOurHook;
+              }
+            );
+
+            if (settings.hooks[hookType].length !== originalLength) {
+              hooksRemoved += originalLength - settings.hooks[hookType].length;
               settingsModified = true;
 
               // Clean up empty arrays
-              if ((settings.hooks[hookType] as Array<unknown>).length === 0) {
+              if (settings.hooks[hookType].length === 0) {
                 delete settings.hooks[hookType];
               }
             }
@@ -92,7 +107,7 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
 
         // Clean up empty hooks object
         if (settings.hooks && Object.keys(settings.hooks).length === 0) {
-          settings.hooks = undefined;
+          delete settings.hooks;
         }
 
         if (settingsModified) {
@@ -106,7 +121,7 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
             <Box flexDirection="column">
               <Info>No cohe hooks found.</Info>
               <Box marginTop={1}>
-                <Text dimmed>
+                <Text dimColor>
                   Hooks may have already been removed or were never installed.
                 </Text>
               </Box>
@@ -122,12 +137,14 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
             <Success>Removed {hooksRemoved} hook(s).</Success>
             {hookRemoved && (
               <Box marginTop={1}>
-                <Text dimmed>Removed legacy hook script</Text>
+                <Text dimColor>Removed legacy hook script</Text>
               </Box>
             )}
             {settingsModified && (
               <Box marginTop={1}>
-                <Text dimmed>Updated Claude settings: {settingsFilePath}</Text>
+                <Text dimColor>
+                  Updated Claude settings: {settingsFilePath}
+                </Text>
               </Box>
             )}
             <Box flexDirection="column" marginTop={1}>

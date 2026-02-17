@@ -1336,7 +1336,7 @@ async function handleHooksSetup() {
     if (!settings.hooks.SessionStart) {
       settings.hooks.SessionStart = [];
     }
-    const sessionStartExists = settings.hooks.SessionStart.some((hookConfig) => hookConfig.type === "command" && hookConfig.command && (hookConfig.command === sessionStartCommand || hookConfig.command.includes("auto hook") || hookConfig.command.includes("auto-rotate.sh")));
+    const sessionStartExists = settings.hooks.SessionStart.some((hookGroup) => hookGroup.hooks.some((hookConfig) => hookConfig.type === "command" && hookConfig.command && (hookConfig.command === sessionStartCommand || hookConfig.command.includes("auto hook") || hookConfig.command.includes("auto-rotate.sh"))));
     if (sessionStartExists) {
       hooksSkipped++;
     } else {
@@ -1354,7 +1354,7 @@ async function handleHooksSetup() {
     if (!settings.hooks.PostToolUse) {
       settings.hooks.PostToolUse = [];
     }
-    const postToolExists = settings.hooks.PostToolUse.some((hookConfig) => hookConfig.type === "command" && hookConfig.command && hookConfig.command.includes("hooks post-tool"));
+    const postToolExists = settings.hooks.PostToolUse.some((hookGroup) => hookGroup.hooks.some((hookConfig) => hookConfig.type === "command" && hookConfig.command && hookConfig.command.includes("hooks post-tool")));
     if (postToolExists) {
       hooksSkipped++;
     } else {
@@ -1372,7 +1372,7 @@ async function handleHooksSetup() {
     if (!settings.hooks.Stop) {
       settings.hooks.Stop = [];
     }
-    const stopExists = settings.hooks.Stop.some((hookConfig) => hookConfig.type === "command" && hookConfig.command && hookConfig.command.includes("hooks stop"));
+    const stopExists = settings.hooks.Stop.some((hookGroup) => hookGroup.hooks.some((hookConfig) => hookConfig.type === "command" && hookConfig.command && hookConfig.command.includes("hooks stop")));
     if (stopExists) {
       hooksSkipped++;
     } else {
@@ -1450,7 +1450,7 @@ async function handleHooksUninstall() {
         }
       }
       if (settings.hooks && Object.keys(settings.hooks).length === 0) {
-        settings.hooks = undefined;
+        delete settings.hooks;
       }
       if (settingsModified) {
         fs4.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2));
@@ -1514,7 +1514,7 @@ async function handleHooksStatus() {
       settingsFound = true;
       for (const hook of hooks) {
         if (settings.hooks?.[hook.name]) {
-          settings.hooks[hook.name].forEach((hookGroup) => {
+          settings.hooks[hook.name]?.forEach((hookGroup) => {
             if (hookGroup.hooks && Array.isArray(hookGroup.hooks)) {
               hookGroup.hooks.forEach((hookConfig) => {
                 if (hookConfig.type === "command" && hookConfig.command && (hookConfig.command.includes(hook.command.split(" ")[1]) || hookConfig.command.includes(hook.hookType))) {
@@ -1703,7 +1703,8 @@ import { jsxDEV as jsxDEV3 } from "react/jsx-dev-runtime";
 function StatusBadge({
   level,
   children,
-  showTimestamp = false
+  showTimestamp = false,
+  inline = false
 }) {
   const color = LEVEL_COLORS[level];
   const prefix = LEVEL_PREFIXES2[level];
@@ -1719,25 +1720,31 @@ function StatusBadge({
   }, undefined, true, undefined, this);
 }
 function Success({
-  children
+  children,
+  inline
 }) {
   return /* @__PURE__ */ jsxDEV3(StatusBadge, {
+    inline,
     level: "success",
     children
   }, undefined, false, undefined, this);
 }
 function Info({
-  children
+  children,
+  inline
 }) {
   return /* @__PURE__ */ jsxDEV3(StatusBadge, {
+    inline,
     level: "info",
     children
   }, undefined, false, undefined, this);
 }
 function Warning({
-  children
+  children,
+  inline
 }) {
   return /* @__PURE__ */ jsxDEV3(StatusBadge, {
+    inline,
     level: "warning",
     children
   }, undefined, false, undefined, this);
@@ -2152,7 +2159,7 @@ var init_post_tool = __esm(() => {
               /* @__PURE__ */ jsxDEV10(Box9, {
                 marginTop: 1,
                 children: /* @__PURE__ */ jsxDEV10(Text10, {
-                  dimmed: true,
+                  dimColor: true,
                   children: "Usage: cohe hooks post-tool [--verbose] [--all] [files...]"
                 }, undefined, false, undefined, this)
               }, undefined, false, undefined, this)
@@ -4929,16 +4936,9 @@ async function handleAuto(args) {
         try {
           const settingsContent = fs8.readFileSync(settingsPath, "utf-8");
           const settings = JSON.parse(settingsContent);
-          let model = currentAccount.defaultModel;
-          if (currentAccount.provider === "zai") {
-            model = "GLM-4.7";
-          } else if (currentAccount.provider === "minimax") {
-            model = "MiniMax-M2.1";
-          }
           const env = {
             ANTHROPIC_AUTH_TOKEN: currentAccount.apiKey,
             ANTHROPIC_BASE_URL: currentAccount.baseUrl,
-            ANTHROPIC_MODEL: model,
             API_TIMEOUT_MS: "3000000",
             CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
             DISABLE_NON_ESSENTIAL_MODEL_CALLS: "1",

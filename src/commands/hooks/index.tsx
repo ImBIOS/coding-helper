@@ -36,7 +36,7 @@ export default class HooksIndex extends BaseCommand<typeof HooksIndex> {
           </Text>
         </Box>
         <Box marginTop={1}>
-          <Text dimmed>
+          <Text dimColor>
             Hooks enable auto-rotation, formatting, and session notifications.
           </Text>
         </Box>

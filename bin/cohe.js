@@ -18,17 +18,20 @@ if (root === "/") {
 // Simple command router for Bun + ink
 const args = process.argv.slice(2);
 
-// Handle global --help and -h flags
+// Read package.json for version and config (do this early for --version flag)
+const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf-8"));
+
+// Handle global --help, -h, and --version flags
 let command = args[0] || "help";
 let commandArgs = args.slice(1);
 
 if (command === "--help" || command === "-h") {
   command = "help";
   commandArgs = [];
+} else if (command === "--version" || command === "-v") {
+  console.log(`COHE v${pkg.version}`);
+  process.exit(0);
 }
-
-// Read package.json for version and config
-const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf-8"));
 
 // Create a minimal config object that oclif commands need
 const minimalConfig = {
@@ -144,15 +147,7 @@ async function main() {
         disable: () => importCmd("src/commands/auto/disable.tsx"),
         status: () => importCmd("src/commands/auto/status.tsx"),
         rotate: () => importCmd("src/commands/auto/rotate.tsx"),
-        hook: () => {
-          // Route auto hook through the loader
-          return importCmd("src/commands/loader.ts").then((loader) => {
-            return loader.loadCommand("auto", [
-              "hook",
-              ...commandArgs.slice(1),
-            ]);
-          });
-        },
+        hook: () => importCmd("src/commands/auto/hook.tsx"),
       },
       alert: {
         list: () => importCmd("src/commands/alert/list.tsx"),
@@ -182,10 +177,12 @@ async function main() {
     // Check if it's a topic command with subcommand
     const subcommand = commandArgs[0];
 
-    // Special case: auto hook routes through loader (for SessionStart hook)
+    // Special case: auto hook runs directly (for SessionStart hook)
     if (command === "auto" && subcommand === "hook") {
-      const { loadCommand } = await importCmd("src/commands/loader.ts");
-      await loadCommand("auto", commandArgs);
+      const AutoHook = (await importCmd("src/commands/auto/hook.tsx")).default;
+      const cmd = new AutoHook(commandArgs.slice(1), minimalConfig);
+      await cmd.init();
+      await cmd.run();
       return;
     }
 
