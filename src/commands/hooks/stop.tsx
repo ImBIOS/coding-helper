@@ -8,6 +8,7 @@ import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
+import { Flags } from "@oclif/core";
 import { Box, Text } from "ink";
 import { BaseCommand } from "../../oclif/base";
 import { Info, Section, Warning } from "../../ui/index";
@@ -20,6 +21,7 @@ interface StopOptions {
 
 interface TranscriptEntry {
   role?: string;
+  content?: string | Array<{ type?: string; text?: string }>;
   message?: {
     role?: string;
     content?: string | Array<{ type?: string; text?: string }>;
@@ -143,11 +145,11 @@ function playSound(): void {
   }
 }
 
-function hasUncommittedChanges(): {
+async function hasUncommittedChanges(): Promise<{
   staged: boolean;
   unstaged: boolean;
   untracked: boolean;
-} {
+}> {
   const gitDir = path.join(process.cwd(), ".git");
   if (!existsSync(gitDir)) {
     return { staged: false, unstaged: false, untracked: false };
@@ -237,20 +239,15 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
   ];
 
   static flags = {
-    silent: {
+    silent: Flags.boolean({
       description: "Run silently without output",
-      shorthand: "s",
-      type: "boolean",
-    },
-    verbose: {
+    }),
+    verbose: Flags.boolean({
       description: "Show detailed output",
-      shorthand: "v",
-      type: "boolean",
-    },
-    "no-commit": {
+    }),
+    "no-commit": Flags.boolean({
       description: "Skip auto-commit",
-      type: "boolean",
-    },
+    }),
   };
 
   async run(): Promise<void> {
@@ -281,7 +278,7 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
     }
 
     // Check for uncommitted changes
-    const changes = hasUncommittedChanges();
+    const changes = await hasUncommittedChanges();
     const hasChanges = changes.staged || changes.unstaged || changes.untracked;
 
     // Auto-commit if there are changes (unless --no-commit flag)

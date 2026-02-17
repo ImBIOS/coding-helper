@@ -348,6 +348,13 @@ function ProjectDoctorUI(): React.ReactElement {
 
 // Handler function for use in index.ts
 export async function handleProjectDoctor(): Promise<void> {
-  const cmd = new ProjectDoctor([""]);
+  // Minimal config for programmatic invocation
+  const config = {
+    root: process.cwd(),
+    name: "cohe",
+    version: "2.1.0",
+  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cmd = new ProjectDoctor([""], config as any);
   await cmd.run();
 }

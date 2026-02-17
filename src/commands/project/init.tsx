@@ -162,8 +162,9 @@ function ProjectInitUI(): React.ReactElement {
             <Box marginTop={1}>
               <MultiSelect
                 onSubmit={(choice) => {
-                  // choice is the value directly (not an object with .value)
-                  if (choice === "skip") {
+                  // choice is an array of values
+                  const selected = choice[0];
+                  if (selected === "skip") {
                     addMessage("info", "Keeping existing CLAUDE.md.");
                     setStep("done");
                     setTimeout(() => exit(), 500);
@@ -409,12 +410,13 @@ async function createClaideMd(
     setStep("done");
     setTimeout(() => exit(), 500);
   } catch (error: unknown) {
-    addMessage(
-      "error",
-      `Failed to create CLAUDE.md: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
+    let errorMessage = "Unknown error";
+    if (typeof error === "object" && error !== null && "message" in error) {
+      errorMessage = String((error as { message: unknown }).message);
+    } else {
+      errorMessage = String(error);
+    }
+    addMessage("error", `Failed to create CLAUDE.md: ${errorMessage}`);
     setStep("done");
     setTimeout(() => exit(), 500);
   }
@@ -422,6 +424,12 @@ async function createClaideMd(
 
 // Handler function for use in index.ts
 export async function handleProjectInit(): Promise<void> {
-  const cmd = new ProjectInit([""]);
+  const config = {
+    root: process.cwd(),
+    name: "cohe",
+    version: "2.1.0",
+  } as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cmd = new ProjectInit([""], config as any);
   await cmd.run();
 }

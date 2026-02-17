@@ -41,7 +41,13 @@ Examples:
 
     case "first-run": {
       const { default: FirstRun } = await import("../first-run.js");
-      const cmd = new FirstRun([""]);
+      const config = {
+        root: process.cwd(),
+        name: "cohe",
+        version: "2.1.0",
+      } as unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cmd = new FirstRun([""], config as any);
       await cmd.run();
       break;
     }

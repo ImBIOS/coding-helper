@@ -9,6 +9,7 @@ import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
+import { Flags } from "@oclif/core";
 import { Box, Text } from "ink";
 import { BaseCommand } from "../../oclif/base";
 import { Info, Section, Success, Warning } from "../../ui/index";
@@ -25,7 +26,7 @@ interface FormatResult {
   formatted: boolean;
 }
 
-function hasCommand(cmd: string): boolean {
+async function hasCommand(cmd: string): Promise<boolean> {
   try {
     const which = spawn("which", [cmd], {
       stdio: ["ignore", "pipe", "ignore"],
@@ -289,21 +290,15 @@ export default class PostTool extends BaseCommand<typeof PostTool> {
   ];
 
   static flags = {
-    silent: {
+    silent: Flags.boolean({
       description: "Run silently without output",
-      shorthand: "s",
-      type: "boolean",
-    },
-    verbose: {
+    }),
+    verbose: Flags.boolean({
       description: "Show detailed output",
-      shorthand: "v",
-      type: "boolean",
-    },
-    all: {
+    }),
+    all: Flags.boolean({
       description: "Format all files in current directory",
-      shorthand: "a",
-      type: "boolean",
-    },
+    }),
   };
 
   async run(): Promise<void> {
