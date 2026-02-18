@@ -6,7 +6,6 @@ export interface ProfileConfig {
   provider: "zai" | "minimax";
   apiKey: string;
   baseUrl: string;
-  defaultModel: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,8 +63,7 @@ export function createProfile(
   name: string,
   provider: "zai" | "minimax",
   apiKey: string,
-  baseUrl: string,
-  defaultModel: string
+  baseUrl: string
 ): ProfileConfig {
   const now = new Date().toISOString();
 
@@ -74,7 +72,6 @@ export function createProfile(
     provider,
     apiKey,
     baseUrl,
-    defaultModel,
     createdAt: now,
     updatedAt: now,
   };
@@ -147,7 +144,6 @@ export function exportProfile(name: string): string | null {
   return `# ImBIOS Profile: ${name}
 export ANTHROPIC_AUTH_TOKEN="${profile.apiKey}"
 export ANTHROPIC_BASE_URL="${profile.baseUrl}"
-export ANTHROPIC_MODEL="${profile.defaultModel}"
 export API_TIMEOUT_MS=3000000
 export IMBIOS_PROFILE="${name}"
 `;

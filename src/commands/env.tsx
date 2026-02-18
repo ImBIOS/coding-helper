@@ -38,7 +38,7 @@ export default class Env extends BaseCommand<typeof Env> {
       const envScript = `# ImBIOS Environment Variables
 export ANTHROPIC_AUTH_TOKEN="${config.apiKey}"
 export ANTHROPIC_BASE_URL="${config.baseUrl}"
-export ANTHROPIC_MODEL="${config.defaultModel}"
+# ANTHROPIC_MODEL is NOT set - providers handle translation
 export API_TIMEOUT_MS=3000000
 `;
       // Use console.log for raw output (for eval)

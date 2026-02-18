@@ -6,6 +6,10 @@
 CLI tool and Claude Code plugin for switching between Z.AI (GLM) and MiniMax API providers.
 Built with oclif framework and Ink (React for CLI UI), providing multi-account management, MCP server control, and auto-rotation capabilities.
 
+### Terminology
+
+**cohe** - This project's CLI tool name (short for "coding helper"). When referring to the CLI command in this codebase, it's always written as `cohe` (e.g., `cohe init`, `cohe account add`). Do not confuse with Cohere (the AI company).
+
 ### Technology Stack
 - Runtime: Bun
 - CLI Framework: oclif with Ink (React for CLI)

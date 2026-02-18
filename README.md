@@ -52,14 +52,19 @@ coding-helper is a developer utility that enables Claude Code users to switch be
 ### Installation
 
 ```bash
-# Install via npm
-npm install -g @imbios/coding-helper
+# Install globally from GitHub (recommended)
+npm install -g github:ImBIOS/coding-helper
 
-# Or via bun (recommended)
-bun install -g @imbios/coding-helper
+# Or with bun
+bun add -g github:ImBIOS/coding-helper
+```
 
-# Run directly with npx
-npx @imbios/coding-helper config
+### User-Level Setup
+
+Initialize your user-level configuration to configure accounts and preferences:
+
+```bash
+cohe init
 ```
 
 ### Basic CLI Usage
@@ -120,6 +125,10 @@ Use the auto-rotation feature directly in your code with the Agent SDK wrapper:
 ### Installation
 
 ```bash
+# Install as a project dependency
+bun add @imbios/coding-helper @anthropic-ai/claude-agent-sdk
+
+# Or with npm
 npm install @imbios/coding-helper @anthropic-ai/claude-agent-sdk
 ```
 
@@ -274,7 +283,6 @@ All accounts and settings are stored in `~/.claude/imbios.json`:
       "provider": "zai",
       "apiKey": "sk-...",
       "baseUrl": "https://api.z.ai/api/anthropic",
-      "defaultModel": "GLM-4.7",
       "priority": 0,
       "isActive": true,
       "createdAt": "2025-01-01T00:00:00.000Z",

@@ -6,7 +6,7 @@ import { BaseCommand } from "../oclif/base";
 import type { Provider } from "../providers/base";
 import { minimaxProvider } from "../providers/minimax";
 import { zaiProvider } from "../providers/zai";
-import { Error as ErrorBadge, Info, Success, Warning } from "../ui/index";
+import { Error as ErrorBadge, Success, Warning } from "../ui/index";
 
 const PROVIDERS: Record<string, () => Provider> = {
   zai: () => zaiProvider,
@@ -56,28 +56,20 @@ export default class Switch extends BaseCommand<typeof Switch> {
 
     settings.setActiveProvider(targetProvider);
 
-    await this.renderApp(
-      <SwitchSuccess
-        defaultModel={config.defaultModel}
-        providerName={provider.displayName}
-      />
-    );
+    await this.renderApp(<SwitchSuccess providerName={provider.displayName} />);
   }
 }
 
 interface SwitchSuccessProps {
   providerName: string;
-  defaultModel: string;
 }
 
 function SwitchSuccess({
   providerName,
-  defaultModel,
 }: SwitchSuccessProps): React.ReactElement {
   return (
     <Box flexDirection="column">
       <Success>Switched to {providerName}</Success>
-      <Info>Default model: {defaultModel}</Info>
     </Box>
   );
 }

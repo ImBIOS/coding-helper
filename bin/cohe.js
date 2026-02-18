@@ -98,6 +98,8 @@ async function main() {
       cost: () => importCmd("src/commands/cost.tsx"),
       usage: () => importCmd("src/commands/usage.tsx"),
       history: () => importCmd("src/commands/history.tsx"),
+      "first-run": () => importCmd("src/commands/first-run.tsx"),
+      init: () => importCmd("src/commands/first-run.tsx"),
 
       // Complex commands
       claude: () => importCmd("src/commands/claude.tsx"),

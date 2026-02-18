@@ -9,20 +9,22 @@ import { Info, Section, Table, Warning } from "../ui/index";
  * TODO: add JSDoc link to re-check each model costs
  */
 const COSTS: Record<string, number> = {
+  "GLM-5": 0.000_15,
   "GLM-4.7": 0.0001,
   "GLM-4.5-Air": 0.000_05,
+  "MiniMax-M2.5": 0.0001,
   "MiniMax-M2.1": 0.000_08,
 } as const;
 
 const MODELS = Object.keys(COSTS) as readonly string[];
-const DEFAULT_MODEL = "GLM-4.7";
+const DEFAULT_MODEL = "GLM-5";
 
 export default class Cost extends BaseCommand<typeof Cost> {
   static description = "Estimate cost for a model";
   static examples = [
     "<%= config.bin %> cost",
-    "<%= config.bin %> cost GLM-4.7",
-    "<%= config.bin %> cost MiniMax-M2.1",
+    "<%= config.bin %> cost GLM-5",
+    "<%= config.bin %> cost MiniMax-M2.5",
   ];
 
   static args = {

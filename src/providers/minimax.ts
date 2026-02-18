@@ -1,17 +1,10 @@
 import { testAnthropicConnection } from "../utils/anthropic-connection-test";
 import type {
-  ModelMapping,
   Provider,
   ProviderConfig,
   UsageOptions,
   UsageStats,
 } from "./base";
-
-const MINIMAX_MODEL_MAPPING: ModelMapping = {
-  opus: "MiniMax-M2.1",
-  sonnet: "MiniMax-M2.1",
-  haiku: "MiniMax-M2.1",
-};
 
 export class MiniMaxProvider implements Provider {
   name = "minimax";
@@ -22,21 +15,7 @@ export class MiniMaxProvider implements Provider {
       apiKey: process.env.MINIMAX_API_KEY || "",
       baseUrl:
         process.env.MINIMAX_BASE_URL || "https://api.minimax.io/anthropic",
-      defaultModel: "MiniMax-M2.1",
-      models: ["MiniMax-M2.1"],
     };
-  }
-
-  getModels(): string[] {
-    return ["MiniMax-M2.1"];
-  }
-
-  getDefaultModel(type: "opus" | "sonnet" | "haiku"): string {
-    return MINIMAX_MODEL_MAPPING[type];
-  }
-
-  getModelMapping(): ModelMapping {
-    return MINIMAX_MODEL_MAPPING;
   }
 
   async testConnection(): Promise<boolean> {
@@ -45,7 +24,7 @@ export class MiniMaxProvider implements Provider {
       {
         apiKey: config.apiKey,
         baseUrl: config.baseUrl,
-        model: config.defaultModel,
+        model: "",
       },
       "MiniMax"
     );

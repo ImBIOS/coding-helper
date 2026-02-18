@@ -1,6 +1,89 @@
-import { MultiSelect as InkMultiSelect } from "@inkjs/ui";
-import { Box, render, Text, useApp } from "ink";
-import { useState } from "react";
+import { Box, render, Text, useApp, useInput } from "ink";
+import { useEffect, useState } from "react";
+
+interface Option {
+  label: string;
+  value: string;
+}
+
+interface CustomMultiSelectProps {
+  options: readonly Option[];
+  defaultValue?: string[];
+  onSubmit: (values: string[]) => void;
+}
+
+export function CustomMultiSelect({
+  options,
+  defaultValue = [],
+  onSubmit,
+}: CustomMultiSelectProps): React.ReactElement {
+  const [selected, setSelected] = useState<Set<string>>(new Set(defaultValue));
+  const [focusedIndex, setFocusedIndex] = useState(0);
+
+  // Reset focused index when options change
+  useEffect(() => {
+    if (focusedIndex >= options.length) {
+      setFocusedIndex(Math.max(0, options.length - 1));
+    }
+  }, [options.length, focusedIndex]);
+
+  useInput((input, key) => {
+    if (key.return) {
+      // Submit on Enter
+      onSubmit(Array.from(selected));
+      return;
+    }
+
+    if (input === " ") {
+      // Space to toggle selection
+      const currentOption = options[focusedIndex];
+      const newSelected = new Set(selected);
+      if (newSelected.has(currentOption.value)) {
+        newSelected.delete(currentOption.value);
+      } else {
+        newSelected.add(currentOption.value);
+      }
+      setSelected(newSelected);
+      return;
+    }
+
+    if (key.upArrow) {
+      setFocusedIndex((prev) => Math.max(0, prev - 1));
+      return;
+    }
+
+    if (key.downArrow) {
+      setFocusedIndex((prev) => Math.min(options.length - 1, prev + 1));
+      return;
+    }
+  });
+
+  return (
+    <Box flexDirection="column">
+      {options.map((option, index) => {
+        const isSelected = selected.has(option.value);
+        const isFocused = index === focusedIndex;
+
+        return (
+          <Box key={option.value}>
+            <Text>
+              {isFocused ? "❯ " : "  "}
+              {isSelected ? "[✓] " : "[ ] "}
+            </Text>
+            <Text bold={isFocused} color={isFocused ? "cyan" : undefined}>
+              {option.label}
+            </Text>
+          </Box>
+        );
+      })}
+      <Box marginTop={1}>
+        <Text color="gray">
+          [↑/↓] Navigate &nbsp; [Space] Toggle &nbsp; [Enter] Confirm
+        </Text>
+      </Box>
+    </Box>
+  );
+}
 
 interface MultiSelectPromptProps<T extends string> {
   message: string;
@@ -48,7 +131,7 @@ function MultiSelectPrompt<T extends string>({
         <Text>{message}</Text>
       </Box>
       <Box paddingLeft={2}>
-        <InkMultiSelect
+        <CustomMultiSelect
           defaultValue={defaultValues}
           onSubmit={handleSubmit}
           options={options}

@@ -148,10 +148,6 @@ function DoctorUI({
         }
       }
 
-      // Check models
-      const hasModels = provider.getModels().length > 0;
-      results.push({ name: "Models available", passed: hasModels });
-
       setChecks(results);
       setIssues(foundIssues);
       setRunning(false);

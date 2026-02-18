@@ -161,19 +161,13 @@ export default class Compare extends BaseCommand<typeof Compare> {
 
     // Setup sessions
     if (zaiConfig.apiKey) {
-      setupSessionFiles(
-        zaiSession,
-        zaiConfig.apiKey,
-        zaiConfig.baseUrl,
-        zaiConfig.defaultModel
-      );
+      setupSessionFiles(zaiSession, zaiConfig.apiKey, zaiConfig.baseUrl);
     }
     if (minimaxConfig.apiKey) {
       setupSessionFiles(
         minimaxSession,
         minimaxConfig.apiKey,
-        minimaxConfig.baseUrl,
-        minimaxConfig.defaultModel
+        minimaxConfig.baseUrl
       );
     }
 

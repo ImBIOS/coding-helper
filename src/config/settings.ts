@@ -7,13 +7,11 @@ export interface COHEConfig {
   zai?: {
     apiKey: string;
     baseUrl: string;
-    defaultModel: string;
     models: string[];
   };
   minimax?: {
     apiKey: string;
     baseUrl: string;
-    defaultModel: string;
     models: string[];
   };
   history?: {
@@ -72,21 +70,16 @@ export function getProviderConfig(
     apiKey: "apiKey" in providerConfig ? (providerConfig.apiKey as string) : "",
     baseUrl:
       "baseUrl" in providerConfig ? (providerConfig.baseUrl as string) : "",
-    defaultModel:
-      "defaultModel" in providerConfig
-        ? (providerConfig.defaultModel as string)
-        : "",
   };
 }
 
 export function setProviderConfig(
   provider: "zai" | "minimax",
   apiKey: string,
-  baseUrl: string,
-  defaultModel: string
+  baseUrl: string
 ): void {
   const config = loadConfig();
-  config[provider] = { apiKey, baseUrl, defaultModel, models: [] };
+  config[provider] = { apiKey, baseUrl, models: [] };
   saveConfig(config);
 }
 

@@ -4,7 +4,6 @@ export interface AccountConfig {
   provider: "zai" | "minimax";
   apiKey: string;
   baseUrl: string;
-  defaultModel: string;
   priority: number;
   isActive: boolean;
   createdAt: string;
@@ -132,7 +131,6 @@ export function addAccount(
   provider: "zai" | "minimax",
   apiKey: string,
   baseUrl: string,
-  defaultModel: string,
   groupId?: string
 ): AccountConfig {
   const id = generateAccountId();
@@ -144,7 +142,6 @@ export function addAccount(
     provider,
     apiKey,
     baseUrl,
-    defaultModel,
     priority: 0,
     isActive: true,
     createdAt: now,

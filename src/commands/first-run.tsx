@@ -1,14 +1,20 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { ConfirmInput, MultiSelect, PasswordInput, TextInput } from "@inkjs/ui";
+import { ConfirmInput, PasswordInput, TextInput } from "@inkjs/ui";
 import { Box, Text, useApp } from "ink";
 import { useState } from "react";
 import * as accountsConfig from "../config/accounts-config";
 import { loadConfig } from "../config/accounts-config";
 import * as settings from "../config/settings";
 import { BaseCommand } from "../oclif/base";
-import { Info, Section, Success, Warning } from "../ui/index";
+import {
+  CustomMultiSelect,
+  Info,
+  Section,
+  Success,
+  Warning,
+} from "../ui/index";
 import { getContainerEnvVars } from "../utils/container";
 
 const PROVIDERS = [
@@ -18,7 +24,8 @@ const PROVIDERS = [
 
 export default class FirstRun extends BaseCommand<typeof FirstRun> {
   static description = "First-time setup wizard for cohe";
-  static examples = ["<%= config.bin %> first-run"];
+  static aliases = ["init"];
+  static examples = ["<%= config.bin %> first-run", "<%= config.bin %> init"];
 
   async run(): Promise<void> {
     await this.renderApp(<FirstRunUI />);
@@ -41,19 +48,47 @@ interface ProviderSetup {
   baseUrl: string;
 }
 
+// Load existing config at module level
+const existingConfig = loadConfig();
+const existingProviders = [
+  ...new Set(Object.values(existingConfig.accounts).map((acc) => acc.provider)),
+];
+
 function FirstRunUI(): React.ReactElement {
   const { exit } = useApp();
   const [step, setStep] = useState<Step>("welcome");
-  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
+  const [selectedProviders, setSelectedProviders] =
+    useState<string[]>(existingProviders);
   const [currentProviderIndex, setCurrentProviderIndex] = useState(0);
   const [currentSetup, setCurrentSetup] = useState<Partial<ProviderSetup>>({});
-  const [completedProviders, setCompletedProviders] = useState<string[]>([]);
+  const [completedProviders, setCompletedProviders] =
+    useState<string[]>(existingProviders);
   const [hooksInstalled, setHooksInstalled] = useState(false);
   const [messages, setMessages] = useState<
     Array<{ type: "info" | "success" | "warning"; text: string }>
   >([]);
 
   const currentProvider = selectedProviders[currentProviderIndex];
+
+  // Check if a provider is already configured
+  const isProviderConfigured = (provider: string): boolean => {
+    return Object.values(existingConfig.accounts).some(
+      (acc) => acc.provider === provider && acc.apiKey
+    );
+  };
+
+  // Get existing config for a provider
+  const getExistingProviderConfig = (
+    provider: string
+  ): { apiKey: string; baseUrl: string } | null => {
+    const account = Object.values(existingConfig.accounts).find(
+      (acc) => acc.provider === provider
+    );
+    if (account && account.apiKey) {
+      return { apiKey: account.apiKey, baseUrl: account.baseUrl };
+    }
+    return null;
+  };
 
   const addMessage = (type: "info" | "success" | "warning", text: string) => {
     setMessages((prev) => [...prev, { type, text }]);
@@ -71,11 +106,37 @@ function FirstRunUI(): React.ReactElement {
     setSelectedProviders(providers);
     setCurrentProviderIndex(0);
     setCurrentSetup({});
-    setStep("enter-api-key");
-    addMessage("info", `Configuring ${providers[0].toUpperCase()}...`);
+
+    // Check if ALL providers are already configured - skip to hooks
+    const allConfigured = providers.every((p) => isProviderConfigured(p));
+    if (allConfigured && providers.length > 0) {
+      addMessage("info", "All selected providers already configured.");
+      setCompletedProviders(providers);
+      setStep("confirm-hooks");
+      return;
+    }
+
+    // Check if first provider is already configured
+    if (isProviderConfigured(providers[0])) {
+      addMessage("info", `${providers[0].toUpperCase()} already configured.`);
+      moveToNextProvider();
+    } else {
+      setStep("enter-api-key");
+      addMessage("info", `Configuring ${providers[0].toUpperCase()}...`);
+    }
   };
 
   const handleApiKeySubmit = (apiKey: string) => {
+    // Skip if provider is already configured
+    if (isProviderConfigured(currentProvider)) {
+      addMessage(
+        "info",
+        `${currentProvider.toUpperCase()} already configured.`
+      );
+      moveToNextProvider();
+      return;
+    }
+
     if (!apiKey) {
       addMessage(
         "warning",
@@ -98,18 +159,15 @@ function FirstRunUI(): React.ReactElement {
     settings.setProviderConfig(
       currentProvider as "zai" | "minimax",
       finalConfig.apiKey!,
-      finalConfig.baseUrl,
-      ""
+      finalConfig.baseUrl
     );
 
     // Save to V2 config
-    const providerConfig = getProviderConfig(currentProvider);
     accountsConfig.addAccount(
       currentProvider,
       currentProvider as "zai" | "minimax",
       finalConfig.apiKey!,
-      finalConfig.baseUrl,
-      providerConfig.defaultModel
+      finalConfig.baseUrl
     );
 
     addMessage(
@@ -149,60 +207,8 @@ function FirstRunUI(): React.ReactElement {
     try {
       const claudeSettingsPath = path.join(os.homedir(), ".claude");
       const settingsFilePath = path.join(claudeSettingsPath, "settings.json");
-      const notifyScriptPath = path.join(claudeSettingsPath, "cohe-notify.sh");
       const hookCommand = "cohe auto hook --silent";
-
-      // Notification script content
-      const notifyScriptContent = `#!/bin/bash
-# cohe-notify.sh - Dynamic notification script for Claude Code
-
-set -euo pipefail
-
-HOOK_INPUT=$(cat)
-TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | python3 -c "import sys, json; print(json.load(sys.stdin).get('transcript_path', ''))" 2>/dev/null || echo "")
-
-MESSAGE="Task completed"
-
-if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
-    EXTRACTED=$(python3 -c "
-import sys
-import json
-
-transcript_path = '$TRANSCRIPT_PATH'
-message = 'Task completed'
-
-try:
-    with open(transcript_path, 'r') as f:
-        for line in reversed(f.readlines()):
-            try:
-                entry = json.loads(line)
-                if entry.get('role') == 'user':
-                    content = entry.get('content', '')
-                    if isinstance(content, list):
-                        message = ' '.join(b.get('text', '') for b in content if b.get('type') == 'text')
-                    else:
-                        message = str(content)
-                    break
-            except:
-                continue
-except:
-    pass
-
-if len(message) > 100:
-    message = message[:97] + '...'
-print(message)
-" 2>/dev/null || echo "Task completed")
-
-    if [ -n "$EXTRACTED" ]; then
-        MESSAGE="$EXTRACTED"
-    fi
-fi
-
-command -v notify-send &>/dev/null && notify-send "Claude Code" "$MESSAGE" -i dialog-information 2>/dev/null
-command -v osascript &>/dev/null && osascript -e "display notification \\"$MESSAGE\\" with title \\"Claude Code\\"" 2>/dev/null
-command -v paplay &>/dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga 2>/dev/null
-exit 0
-`;
+      const notifyCommand = "cohe notify";
 
       // Read or create settings
       let settingsData: any = {};
@@ -213,12 +219,6 @@ exit 0
         } catch {
           settingsData = {};
         }
-      }
-
-      // Create notification script
-      if (!fs.existsSync(notifyScriptPath)) {
-        fs.writeFileSync(notifyScriptPath, notifyScriptContent);
-        fs.chmodSync(notifyScriptPath, 0o755);
       }
 
       // Initialize hooks
@@ -250,20 +250,45 @@ exit 0
         settingsData.hooks.Stop = [];
       }
 
-      const stopHookCommand = `"${notifyScriptPath}"`;
       const stopExists = (settingsData.hooks.Stop || []).some(
         (h: any) =>
           h.hooks &&
           h.hooks.some(
             (hook: any) =>
-              hook.type === "command" && hook.command?.includes("cohe-notify")
+              hook.type === "command" &&
+              (hook.command === notifyCommand ||
+                hook.command?.includes("cohe notify"))
           )
       );
 
       if (!stopExists) {
         settingsData.hooks.Stop.push({
-          hooks: [{ type: "command", command: stopHookCommand }],
+          hooks: [{ type: "command", command: notifyCommand }],
         });
+      }
+
+      // Add Notification hooks
+      if (!settingsData.hooks.Notification) {
+        settingsData.hooks.Notification = [];
+      }
+
+      const notificationTypes = [
+        "permission_prompt",
+        "idle_prompt",
+        "auth_success",
+        "elicitation_dialog",
+      ];
+
+      for (const notificationType of notificationTypes) {
+        const existing = settingsData.hooks.Notification.find(
+          (h: any) => h.matcher === notificationType
+        );
+        if (!existing) {
+          settingsData.hooks.Notification.push({
+            matcher: notificationType,
+            hooks: [{ type: "command", command: notifyCommand }],
+          });
+        }
       }
 
       // Set environment variables
@@ -311,13 +336,32 @@ exit 0
         {/* Welcome Step */}
         {step === "welcome" && (
           <Box flexDirection="column" marginTop={1}>
-            <Text>Welcome to cohe! Let's get you set up.</Text>
-            <Box marginTop={1}>
-              <Text color="gray">
-                This wizard will help you configure your API providers and set
-                up Claude Code hooks.
-              </Text>
-            </Box>
+            {existingProviders.length > 0 ? (
+              <>
+                <Text>Welcome back! Your cohe configuration was found.</Text>
+                <Box marginTop={1}>
+                  <Text color="gray">
+                    Already configured:{" "}
+                    {existingProviders.map((p) => p.toUpperCase()).join(", ")}
+                  </Text>
+                </Box>
+                <Box marginTop={1}>
+                  <Text color="gray">
+                    You can modify existing providers or add new ones.
+                  </Text>
+                </Box>
+              </>
+            ) : (
+              <>
+                <Text>Welcome to cohe! Let's get you set up.</Text>
+                <Box marginTop={1}>
+                  <Text color="gray">
+                    This wizard will help you configure your API providers and
+                    set up Claude Code hooks.
+                  </Text>
+                </Box>
+              </>
+            )}
             <Box marginTop={1}>
               <Text>Continue? </Text>
               <ConfirmInput
@@ -336,8 +380,17 @@ exit 0
         {step === "select-providers" && (
           <Box flexDirection="column" marginTop={1}>
             <Text>Select API providers to configure:</Text>
+            {existingProviders.length > 0 && (
+              <Box marginTop={1}>
+                <Text color="green">
+                  Already configured:{" "}
+                  {existingProviders.map((p) => p.toUpperCase()).join(", ")}
+                </Text>
+              </Box>
+            )}
             <Box paddingLeft={2}>
-              <MultiSelect
+              <CustomMultiSelect
+                defaultValue={existingProviders}
                 onSubmit={handleProvidersSelected}
                 options={PROVIDERS}
               />
@@ -383,7 +436,15 @@ exit 0
               <Text>• Auto-rotation of API keys on session start</Text>
             </Box>
             <Box marginLeft={2}>
-              <Text>• Notifications with task details when sessions end</Text>
+              <Text>
+                • Notifications for session events (permission prompts,
+              </Text>
+            </Box>
+            <Box marginLeft={4}>
+              <Text>idle prompts, auth success, elicitation dialog)</Text>
+            </Box>
+            <Box marginLeft={2}>
+              <Text>• Z.AI plugin installation (for Z.AI provider)</Text>
             </Box>
             <Box marginTop={1}>
               <Text>Install hooks? </Text>
@@ -453,14 +514,4 @@ function getDefaultBaseUrl(provider: string): string {
     minimax: "https://api.minimax.chat/v1",
   };
   return configs[provider] || "";
-}
-
-function getProviderConfig(provider: string): {
-  defaultModel: string;
-} {
-  const configs: Record<string, { defaultModel: string }> = {
-    zai: { defaultModel: "glm-4.7" },
-    minimax: { defaultModel: "MiniMax-M2.1" },
-  };
-  return configs[provider] || { defaultModel: "MiniMax-M2.1" };
 }

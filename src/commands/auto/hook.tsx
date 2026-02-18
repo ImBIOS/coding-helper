@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -9,9 +10,10 @@ import { BaseCommand } from "../../oclif/base";
  * Hook command for Claude Code SessionStart event.
  *
  * This command is designed to be called from Claude Code hooks.
- * It performs two actions:
+ * It performs three actions:
  * 1. Rotates to the least-used provider (if rotation is enabled)
- * 2. Updates ~/.claude/settings.json with the active account credentials
+ * 2. Installs Z.AI coding plugins (if active provider is Z.AI)
+ * 3. Updates ~/.claude/settings.json with the active account credentials
  *
  * The rotation happens BEFORE applying credentials, so the CURRENT session
  * always uses the optimal provider based on the rotation strategy.
@@ -64,6 +66,15 @@ export default class AutoHook extends BaseCommand<typeof AutoHook> {
       return;
     }
 
+    // Install Z.AI coding plugins if active provider is Z.AI
+    if (currentAccount.provider === "zai") {
+      try {
+        this.installZaiPlugins(flags.silent);
+      } catch {
+        // Silent fail - plugin installation errors shouldn't break the session
+      }
+    }
+
     // Update settings.json with current account credentials
     // This is what Claude Code will use for the current session
     // Use HOME env var if set (for testing), otherwise use os.homedir()
@@ -95,6 +106,64 @@ export default class AutoHook extends BaseCommand<typeof AutoHook> {
         if (!flags.silent) {
           console.error("Failed to update settings.json:", error);
         }
+      }
+    }
+  }
+
+  /**
+   * Install Z.AI coding plugins from the marketplace.
+   * Only runs for Z.AI provider, not MiniMax.
+   */
+  private installZaiPlugins(silent: boolean): void {
+    try {
+      // Check if marketplace is already added
+      const installedMarkets = execSync("claude plugin marketplace list", {
+        encoding: "utf-8",
+        stdio: "pipe",
+      });
+
+      if (!installedMarkets.includes("zai-org/zai-coding-plugins")) {
+        if (!silent) {
+          console.log("Adding Z.AI coding plugins marketplace...");
+        }
+        execSync("claude plugin marketplace add zai-org/zai-coding-plugins", {
+          stdio: silent ? "pipe" : "inherit",
+        });
+      }
+
+      // List available plugins from the marketplace
+      const plugins = execSync(
+        "claude plugin marketplace list-plugins zai-org/zai-coding-plugins",
+        { encoding: "utf-8", stdio: "pipe" }
+      );
+
+      // Install each available plugin if not already installed
+      const pluginLines = plugins.split("\n").filter((line) => line.trim());
+      for (const line of pluginLines) {
+        const pluginMatch = line.match(/^[\s-]*([a-z-]+)/i);
+        if (pluginMatch) {
+          const pluginName = pluginMatch[1];
+          try {
+            // Check if already installed
+            execSync(`claude plugin list ${pluginName}`, {
+              encoding: "utf-8",
+              stdio: "pipe",
+            });
+          } catch {
+            // Plugin not found, install it
+            if (!silent) {
+              console.log(`Installing Z.AI plugin: ${pluginName}`);
+            }
+            execSync(
+              `claude plugin marketplace install zai-org/zai-coding-plugins ${pluginName}`,
+              { stdio: silent ? "pipe" : "inherit" }
+            );
+          }
+        }
+      }
+    } catch (error) {
+      if (!silent) {
+        console.error("Failed to install Z.AI plugins:", error);
       }
     }
   }

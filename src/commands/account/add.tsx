@@ -89,14 +89,12 @@ function AccountAddUI(): React.ReactElement {
 
   const handleBaseUrlSubmit = (value: string) => {
     const finalBaseUrl = value || PROVIDERS[provider]().getConfig().baseUrl;
-    const defaultModel = PROVIDERS[provider]().getConfig().defaultModel;
 
     const account = addAccount(
       name,
       provider,
       apiKey,
       finalBaseUrl,
-      defaultModel,
       groupId || undefined
     );
     setAccountId(account.id);
@@ -174,10 +172,7 @@ function AccountAddUI(): React.ReactElement {
           <Box flexDirection="column">
             <Success>Account "{name}" added successfully!</Success>
             <Info>Account ID: {accountId}</Info>
-            <Info>
-              Provider: {provider} | Model:{" "}
-              {PROVIDERS[provider]().getConfig().defaultModel}
-            </Info>
+            <Info>Provider: {provider}</Info>
             {groupId && <Info>GroupId: {groupId}</Info>}
           </Box>
         )}

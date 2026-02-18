@@ -11,22 +11,6 @@ const PROVIDERS: Record<string, () => Provider> = {
   minimax: () => minimaxProvider,
 };
 
-/**
- * Get model mapping environment variables for a provider
- * Based on official documentation from Z.AI and MiniMax
- */
-function getModelEnvVars(provider: "zai" | "minimax"): Record<string, string> {
-  const providerInstance = PROVIDERS[provider]();
-  const mapping = providerInstance.getModelMapping();
-
-  return {
-    ANTHROPIC_DEFAULT_OPUS_MODEL: mapping.opus,
-    ANTHROPIC_DEFAULT_SONNET_MODEL: mapping.sonnet,
-    ANTHROPIC_DEFAULT_HAIKU_MODEL: mapping.haiku,
-    ANTHROPIC_SMALL_FAST_MODEL: mapping.haiku,
-  };
-}
-
 export default class Claude extends BaseCommand<typeof Claude> {
   static description = "Spawn Claude with auto-switch";
   static examples = [
@@ -101,7 +85,6 @@ export default class Claude extends BaseCommand<typeof Claude> {
       // Use legacy config
       const provider = PROVIDERS[legacyProvider]();
       const providerConfig = provider.getConfig();
-      const modelEnvVars = getModelEnvVars(legacyProvider);
 
       // Build environment - only disable non-essential traffic for MiniMax
       const childEnv: Record<string, string> = {
@@ -109,7 +92,6 @@ export default class Claude extends BaseCommand<typeof Claude> {
         ANTHROPIC_AUTH_TOKEN: providerConfig.apiKey,
         ANTHROPIC_BASE_URL: providerConfig.baseUrl,
         // ANTHROPIC_MODEL is NOT set - providers handle translation
-        ...modelEnvVars,
         API_TIMEOUT_MS: "3000000",
       };
 
@@ -132,16 +114,12 @@ export default class Claude extends BaseCommand<typeof Claude> {
       return;
     }
 
-    // Use v2 account - get model mappings for the provider
-    const modelEnvVars = getModelEnvVars(activeAccount.provider);
-
     // Build environment - only disable non-essential traffic for MiniMax
     const childEnv: Record<string, string> = {
       ...process.env,
       ANTHROPIC_AUTH_TOKEN: activeAccount.apiKey,
       ANTHROPIC_BASE_URL: activeAccount.baseUrl,
       // ANTHROPIC_MODEL is NOT set - providers handle translation
-      ...modelEnvVars,
       API_TIMEOUT_MS: "3000000",
     };
 

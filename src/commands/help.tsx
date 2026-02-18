@@ -37,6 +37,7 @@ function HelpUI({ version }: { version: string }): React.ReactElement {
       <Text> test Test API connection</Text>
       <Text> plugin &lt;action&gt; Manage Claude Code plugin</Text>
       <Text> doctor Diagnose configuration issues</Text>
+      <Text> init First-time setup wizard</Text>
       <Text> env export Export environment variables</Text>
       <Text> models [provider] List available models</Text>
       <Text>
@@ -61,6 +62,7 @@ function HelpUI({ version }: { version: string }): React.ReactElement {
         cohe claude --continue # Run claude --continue with auto-switch
       </Text>
       <Text> cohe config # Configure providers</Text>
+      <Text> cohe init # First-time setup wizard</Text>
       <Text> cohe switch minimax # Switch to MiniMax</Text>
       <Text> cohe account add work # Add work account</Text>
       <Text> cohe rotate zai # Rotate Z.AI key</Text>

@@ -142,20 +142,14 @@ export async function getAutoRotatedEnv(
   const activeAccount = accountsConfig.getActiveAccount();
 
   if (activeAccount) {
-    // Determine the model to use based on provider
-    let model = activeAccount.defaultModel;
-    if (activeAccount.provider === "zai") {
-      model = "GLM-4.7";
-    } else if (activeAccount.provider === "minimax") {
-      model = "MiniMax-M2.1";
-    }
-
+    // Get model from provider (auto-translated by server)
+    const provider = PROVIDERS[activeAccount.provider]?.();
     // Build environment - only disable non-essential traffic for MiniMax
     const env: Record<string, string | undefined> = {
       ...process.env,
       ANTHROPIC_AUTH_TOKEN: activeAccount.apiKey,
       ANTHROPIC_BASE_URL: activeAccount.baseUrl,
-      ANTHROPIC_MODEL: model,
+      // ANTHROPIC_MODEL is NOT set - providers handle translation
       API_TIMEOUT_MS: "3000000",
     };
 
@@ -181,7 +175,7 @@ export async function getAutoRotatedEnv(
     ...process.env,
     ANTHROPIC_AUTH_TOKEN: providerConfig.apiKey,
     ANTHROPIC_BASE_URL: providerConfig.baseUrl,
-    ANTHROPIC_MODEL: providerConfig.defaultModel,
+    // ANTHROPIC_MODEL is NOT set - providers handle translation
     API_TIMEOUT_MS: "3000000",
   };
 
@@ -198,7 +192,6 @@ export async function getAutoRotatedEnv(
 export function getActiveCredentials(): {
   apiKey: string;
   baseUrl: string;
-  model: string;
   provider: "zai" | "minimax";
   accountName: string | null;
 } | null {
@@ -208,7 +201,6 @@ export function getActiveCredentials(): {
     return {
       apiKey: activeAccount.apiKey,
       baseUrl: activeAccount.baseUrl,
-      model: activeAccount.defaultModel,
       provider: activeAccount.provider,
       accountName: activeAccount.name,
     };
@@ -231,7 +223,6 @@ export function getActiveCredentials(): {
   return {
     apiKey: providerConfig.apiKey,
     baseUrl: providerConfig.baseUrl,
-    model: providerConfig.defaultModel,
     provider: legacyProvider,
     accountName: null,
   };
@@ -301,20 +292,14 @@ function getAutoRotatedEnvSync(): Record<string, string | undefined> {
   const activeAccount = accountsConfig.getActiveAccount();
 
   if (activeAccount) {
-    // Determine the model to use based on provider
-    let model = activeAccount.defaultModel;
-    if (activeAccount.provider === "zai") {
-      model = "GLM-4.7";
-    } else if (activeAccount.provider === "minimax") {
-      model = "MiniMax-M2.1";
-    }
-
+    // Get model from provider (auto-translated by server)
+    const provider = PROVIDERS[activeAccount.provider]?.();
     // Build environment - only disable non-essential traffic for MiniMax
     const env: Record<string, string | undefined> = {
       ...process.env,
       ANTHROPIC_AUTH_TOKEN: activeAccount.apiKey,
       ANTHROPIC_BASE_URL: activeAccount.baseUrl,
-      ANTHROPIC_MODEL: model,
+      // ANTHROPIC_MODEL is NOT set - providers handle translation
       API_TIMEOUT_MS: "3000000",
     };
 
@@ -340,7 +325,7 @@ function getAutoRotatedEnvSync(): Record<string, string | undefined> {
     ...process.env,
     ANTHROPIC_AUTH_TOKEN: providerConfig.apiKey,
     ANTHROPIC_BASE_URL: providerConfig.baseUrl,
-    ANTHROPIC_MODEL: providerConfig.defaultModel,
+    // ANTHROPIC_MODEL is NOT set - providers handle translation
     API_TIMEOUT_MS: "3000000",
   };
 

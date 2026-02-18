@@ -40,7 +40,7 @@ export async function spawnClaudeInstance(
         "--continue",
         "--no-color",
         "--model",
-        session.provider === "zai" ? "GLM-4.7" : "MiniMax-M2.1",
+        session.provider === "zai" ? "GLM-5" : "MiniMax-M2.5",
       ],
       {
         cwd: session.providerPath,

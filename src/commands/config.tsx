@@ -120,8 +120,7 @@ function ConfigUI(): React.ReactElement {
     settings.setProviderConfig(
       currentProvider as "zai" | "minimax",
       finalConfig.apiKey!,
-      finalConfig.baseUrl,
-      ""
+      finalConfig.baseUrl
     );
     addMessage(
       "success",

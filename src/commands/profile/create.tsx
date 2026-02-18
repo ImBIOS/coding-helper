@@ -32,7 +32,6 @@ type CreateStep =
   | "provider"
   | "api-key"
   | "base-url"
-  | "model"
   | "done"
   | "error";
 
@@ -75,21 +74,10 @@ function ProfileCreateUI(): React.ReactElement {
 
   const handleBaseUrlSubmit = (value: string) => {
     setBaseUrl(value || PROVIDERS[provider]().getConfig().baseUrl);
-    setStep("model");
-  };
-
-  const handleModelChange = (value: string) => {
-    profiles.createProfile(name, provider, apiKey, baseUrl, value);
+    profiles.createProfile(name, provider, apiKey, baseUrl);
     setStep("done");
     setTimeout(() => exit(), 500);
   };
-
-  const modelOptions = PROVIDERS[provider]()
-    .getModels()
-    .map((m) => ({
-      label: m,
-      value: m,
-    }));
 
   return (
     <Section title="Create Profile">
@@ -133,15 +121,6 @@ function ProfileCreateUI(): React.ReactElement {
               defaultValue={PROVIDERS[provider]().getConfig().baseUrl}
               onSubmit={handleBaseUrlSubmit}
             />
-          </Box>
-        )}
-
-        {step === "model" && (
-          <Box flexDirection="column">
-            <Text>Select model:</Text>
-            <Box paddingLeft={2}>
-              <Select onChange={handleModelChange} options={modelOptions} />
-            </Box>
           </Box>
         )}
 

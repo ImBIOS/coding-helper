@@ -47,7 +47,6 @@ export default class Status extends BaseCommand<typeof Status> {
         }
         baseUrl={config.baseUrl}
         connection={hasApiKey ? "Ready" : "Not configured"}
-        defaultModel={config.defaultModel}
         otherConfigured={otherHasKey}
         otherProvider={otherProvider.displayName}
         rotationEnabled={v2Config.rotation.enabled}
@@ -61,7 +60,6 @@ interface StatusUIProps {
   activeProvider: string;
   apiKey: string;
   baseUrl: string;
-  defaultModel: string;
   connection: string;
   otherProvider: string;
   otherConfigured: boolean;
@@ -75,7 +73,6 @@ function StatusUI({
   activeProvider,
   apiKey,
   baseUrl,
-  defaultModel,
   connection,
   otherProvider,
   otherConfigured,
@@ -92,7 +89,6 @@ function StatusUI({
             "Active Provider": activeProvider,
             "API Key": apiKey,
             "Base URL": baseUrl,
-            "Default Model": defaultModel,
             Connection: connection,
           }}
         />

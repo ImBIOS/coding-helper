@@ -36,7 +36,6 @@ export default class AutoRotate extends BaseCommand<typeof AutoRotate> {
               provider: newAccount.provider,
               apiKey: newAccount.apiKey,
               baseUrl: newAccount.baseUrl,
-              defaultModel: newAccount.defaultModel,
             },
           })
         );

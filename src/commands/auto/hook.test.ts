@@ -33,7 +33,6 @@ describe("cohe hook - Disaster Prevention Tests", () => {
           provider: "zai" as const,
           apiKey: "test-key-1",
           baseUrl: "https://api.test1.com",
-          defaultModel: "GLM-4.7",
           priority: 1,
           isActive: true,
           createdAt: new Date().toISOString(),
@@ -44,7 +43,6 @@ describe("cohe hook - Disaster Prevention Tests", () => {
           provider: "minimax" as const,
           apiKey: "test-key-2",
           baseUrl: "https://api.test2.com",
-          defaultModel: "MiniMax-M2.1",
           priority: 2,
           isActive: true,
           createdAt: new Date().toISOString(),
@@ -158,7 +156,6 @@ describe("cohe hook - Disaster Prevention Tests", () => {
       const settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, "utf-8"));
       expect(settings.env.ANTHROPIC_AUTH_TOKEN).toBe("test-key-1");
       expect(settings.env.ANTHROPIC_BASE_URL).toBe("https://api.test1.com");
-      expect(settings.env.ANTHROPIC_MODEL).toBe("GLM-4.7");
     });
 
     test("should rotate to next account when enabled", () => {
@@ -214,8 +211,9 @@ describe("cohe hook - Disaster Prevention Tests", () => {
     });
 
     test("should use correct model per provider", () => {
-      // Test Z.AI provider
+      // Disable rotation for this test
       let config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+      config.rotation.enabled = false;
       config.activeAccountId = "acc_test_1";
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 
@@ -225,7 +223,7 @@ describe("cohe hook - Disaster Prevention Tests", () => {
       });
 
       let settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, "utf-8"));
-      expect(settings.env.ANTHROPIC_MODEL).toBe("GLM-4.7");
+      expect(settings.env.ANTHROPIC_AUTH_TOKEN).toBe("test-key-1");
 
       // Test MiniMax provider
       config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
@@ -238,7 +236,7 @@ describe("cohe hook - Disaster Prevention Tests", () => {
       });
 
       settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, "utf-8"));
-      expect(settings.env.ANTHROPIC_MODEL).toBe("MiniMax-M2.1");
+      expect(settings.env.ANTHROPIC_AUTH_TOKEN).toBe("test-key-2");
     });
   });
 });

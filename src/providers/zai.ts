@@ -1,17 +1,10 @@
 import { testAnthropicConnection } from "../utils/anthropic-connection-test";
 import type {
-  ModelMapping,
   Provider,
   ProviderConfig,
   UsageOptions,
   UsageStats,
 } from "./base";
-
-const ZAI_MODEL_MAPPING: ModelMapping = {
-  opus: "GLM-4.7",
-  sonnet: "GLM-4.7",
-  haiku: "GLM-4.5-Air",
-};
 
 export class ZAIProvider implements Provider {
   name = "zai";
@@ -21,21 +14,7 @@ export class ZAIProvider implements Provider {
     return {
       apiKey: process.env.ZAI_API_KEY || "",
       baseUrl: process.env.ZAI_BASE_URL || "https://api.z.ai/api/anthropic",
-      defaultModel: "GLM-4.7",
-      models: ["GLM-4.7", "GLM-4.5-Air"],
     };
-  }
-
-  getModels(): string[] {
-    return ["GLM-4.7", "GLM-4.5-Air"];
-  }
-
-  getDefaultModel(type: "opus" | "sonnet" | "haiku"): string {
-    return ZAI_MODEL_MAPPING[type];
-  }
-
-  getModelMapping(): ModelMapping {
-    return ZAI_MODEL_MAPPING;
   }
 
   async testConnection(): Promise<boolean> {
@@ -44,7 +23,7 @@ export class ZAIProvider implements Provider {
       {
         apiKey: config.apiKey,
         baseUrl: config.baseUrl,
-        model: config.defaultModel,
+        model: "",
       },
       "ZAI"
     );

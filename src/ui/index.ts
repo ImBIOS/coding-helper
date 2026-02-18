@@ -24,3 +24,6 @@ export {
   providerSelection,
   select,
 } from "./prompts/index";
+
+// Custom components
+export { CustomMultiSelect } from "./prompts/multi-select";
