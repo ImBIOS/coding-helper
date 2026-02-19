@@ -36,6 +36,21 @@ export type RotationStrategy =
   | "priority"
   | "random";
 
+export type SoundFlavor =
+  | "default"
+  | "warcraft"
+  | "retro"
+  | "classic-doom"
+  | "pokemon"
+  | "zelda";
+
+export interface SoundConfig {
+  flavor: SoundFlavor;
+  enabled: boolean;
+  volume: number;
+  customPaths?: Partial<Record<SoundFlavor, Record<string, string>>>;
+}
+
 export interface RotationConfig {
   enabled: boolean;
   strategy: RotationStrategy;
@@ -58,6 +73,7 @@ export interface COHEConfig {
     enabled: boolean;
     authToken?: string;
   };
+  sound: SoundConfig;
   rotation: RotationConfig;
 }
 
@@ -80,6 +96,11 @@ export const DEFAULT_CONFIG: COHEConfig = {
     port: 3456,
     host: "localhost",
     enabled: false,
+  },
+  sound: {
+    flavor: "default",
+    enabled: true,
+    volume: 0.7,
   },
   rotation: {
     enabled: true,
@@ -342,6 +363,18 @@ export function toggleDashboard(
       .slice(2, 16)}`;
   }
   saveConfig(config);
+}
+
+export function getSoundConfig(): SoundConfig {
+  const config = loadConfig();
+  return config.sound;
+}
+
+export function updateSoundConfig(updates: Partial<SoundConfig>): SoundConfig {
+  const config = loadConfig();
+  config.sound = { ...config.sound, ...updates };
+  saveConfig(config);
+  return config.sound;
 }
 
 export function configureRotation(

@@ -10,6 +10,7 @@ import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { Flags } from "@oclif/core";
 import { Box, Text } from "ink";
+import { playHookSound } from "../../lib/sounds";
 import { BaseCommand } from "../../oclif/base";
 import { Info, Section, Warning } from "../../ui/index";
 
@@ -17,6 +18,7 @@ interface StopOptions {
   silent: boolean;
   verbose: boolean;
   noCommit: boolean;
+  strict: boolean;
 }
 
 interface TranscriptEntry {
@@ -123,28 +125,6 @@ function sendNotification(title: string, message: string): void {
   // TODO: Fallback, write to console only in verbose mode
 }
 
-function playSound(): void {
-  // Try paplay (PipeWire/PulseAudio on Linux)
-  if (existsSync("/usr/bin/paplay")) {
-    const soundPath = "/usr/share/sounds/freedesktop/stereo/complete.oga";
-    if (existsSync(soundPath)) {
-      spawn("/usr/bin/paplay", [soundPath], {
-        stdio: "ignore",
-        detached: true,
-      });
-      return;
-    }
-  }
-
-  // Try aplay (ALSA fallback)
-  if (existsSync("/usr/bin/aplay")) {
-    const soundPath = "/usr/share/sounds/alsa/Front_Center.wav";
-    if (existsSync(soundPath)) {
-      spawn("/usr/bin/aplay", [soundPath], { stdio: "ignore", detached: true });
-    }
-  }
-}
-
 async function hasUncommittedChanges(): Promise<{
   staged: boolean;
   unstaged: boolean;
@@ -214,20 +194,61 @@ function runGitCommand(
   });
 }
 
-async function stageAndCommit(message: string): Promise<boolean> {
-  // Stage all changes (tracked + untracked)
-  const addResult = await runGitCommand(["add", "-A"]);
-  if (!addResult.success) return false;
+async function generateConventionalCommit(
+  message: string
+): Promise<string | null> {
+  // Get diff to help Claude understand what changed
+  const diffResult = await runGitCommand(["diff", "--cached", "--stat"]);
+  const stagedFiles = diffResult.success ? diffResult.output : "";
 
-  // Create commit
-  const commitResult = await runGitCommand([
-    "commit",
-    "-m",
-    `WIP: ${message}`,
-    "--no-gpg-sign",
-  ]);
+  return new Promise((resolve) => {
+    const prompt = `Generate a conventional commit message for this change.
 
-  return commitResult.success;
+Message from user: ${message}
+
+Staged files:
+${stagedFiles || "No staged files"}
+
+Follow conventional commits format:
+- feat: A new feature
+- fix: A bug fix
+- docs: Documentation only changes
+- style: Changes that do not affect the meaning of the code (white-space, formatting, etc)
+- refactor: A code change that neither fixes a bug nor adds a feature
+- perf: A code change that improves performance
+- test: Adding missing tests or correcting existing tests
+- build: Changes that affect the build system or external dependencies
+- ci: Changes to CI configuration files and scripts
+- chore: Other changes that don't modify src or test files
+- revert: Reverts a previous commit
+
+Include a short description (under 72 characters). Be specific about what changed.
+
+Return ONLY the commit message, no explanation or formatting.`;
+
+    const proc = spawn("claude", ["--headless", "--output-format", "text"], {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    let output = "";
+    proc.stdout.on("data", (data) => (output += data.toString()));
+    proc.stderr.on("data", (data) => (output += data.toString()));
+
+    proc.on("close", (code) => {
+      if (code === 0 && output.trim()) {
+        // Extract first line of commit message
+        const commitMsg = output.trim().split("\n")[0];
+        resolve(commitMsg);
+      } else {
+        resolve(null);
+      }
+    });
+
+    proc.on("error", () => resolve(null));
+
+    proc.stdin?.write(prompt);
+    proc.stdin?.end();
+  });
 }
 
 export default class HooksStop extends BaseCommand<typeof HooksStop> {
@@ -248,6 +269,11 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
     "no-commit": Flags.boolean({
       description: "Skip auto-commit",
     }),
+    strict: Flags.boolean({
+      description:
+        "Use --no-verify after 3 failed attempts instead of retrying",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -256,6 +282,7 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
       silent: flags.silent ?? false,
       verbose: flags.verbose ?? false,
       noCommit: flags["no-commit"] ?? false,
+      strict: flags.strict ?? false,
     };
 
     // Get transcript path from stdin
@@ -274,7 +301,7 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
     // Send notification and play sound
     if (!options.silent || options.verbose) {
       sendNotification("Claude Code", message);
-      playSound();
+      playHookSound("stop");
     }
 
     // Check for uncommitted changes
@@ -295,53 +322,99 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
         await runGitCommand(["add", "."]);
       }
 
+      // Generate conventional commit message using Claude Code CLI
+      if (options.verbose) {
+        console.log("\n🤖 Generating conventional commit message...");
+      }
+
+      let commitMessage = await generateConventionalCommit(message);
+
+      // Fallback to WIP if Claude fails to generate a message
+      if (!commitMessage) {
+        commitMessage = `WIP: ${message}`;
+        if (options.verbose) {
+          console.log(
+            "⚠️  Claude failed to generate commit message, using WIP fallback"
+          );
+        }
+      } else if (options.verbose) {
+        console.log(`📝 Commit message: ${commitMessage}`);
+      }
+
       // Try to commit with pre-commit checks
       let commitSuccess = false;
       let attempts = 0;
-      const maxAttempts = 3;
+      const maxInitialAttempts = 3;
+      const maxStrictAttempts = 3;
 
-      while (!commitSuccess && attempts < maxAttempts) {
+      // In non-strict mode, we loop until successful (or user interrupts)
+      // In strict mode, we try maxStrictAttempts times then use --no-verify
+      while (!commitSuccess) {
         attempts++;
 
-        const commitResult = await runGitCommand([
+        // First 3 attempts: try without --no-verify
+        // After 3 attempts in strict mode: use --no-verify
+        // In non-strict mode: keep retrying without --no-verify
+        const useNoVerify = options.strict && attempts > maxInitialAttempts;
+
+        const commitArgs = [
           "commit",
           "-m",
-          `WIP: ${message}`,
-          "--no-gpg-sign",
-          "--no-verify",
-        ]);
+          commitMessage,
+          ...(useNoVerify ? ["--no-verify"] : []),
+        ];
+
+        if (options.verbose) {
+          console.log(
+            `🔧 Commit attempt ${attempts}${useNoVerify ? " (--no-verify)" : ""}...`
+          );
+        }
+
+        const commitResult = await runGitCommand(commitArgs);
 
         if (commitResult.success) {
           commitSuccess = true;
           if (!options.silent) {
-            console.log(`✅ Changes committed (attempt ${attempts})`);
+            console.log(
+              `✅ Changes committed${useNoVerify ? " (with --no-verify)" : ""}`
+            );
           }
         } else {
           // Pre-commit failed - try to fix and retry
-          if (attempts < maxAttempts) {
-            if (options.verbose) {
-              console.log(
-                `⚠️  Commit attempt ${attempts} failed, fixing and retrying...`
-              );
-            }
+          const shouldRetry = options.strict
+            ? attempts < maxStrictAttempts
+            : true;
 
-            // Run formatter to fix issues
-            const { spawn } = await import("node:child_process");
-            await new Promise<void>((resolve) => {
-              spawn("bun", ["x", "ultracite", "fix"], {
-                stdio: "inherit",
-                shell: true,
-              }).on("close", () => resolve());
-            });
-
-            // Re-stage files after formatting
-            await runGitCommand(["add", "-u", "."]);
+          if (!shouldRetry) {
+            break;
           }
+
+          if (options.verbose) {
+            console.log("⚠️  Commit failed, running formatter and retrying...");
+            console.log(`   Error: ${commitResult.output.split("\n")[0]}`);
+          }
+
+          // Run formatter to fix issues
+          await new Promise<void>((resolve) => {
+            spawn("bun", ["x", "ultracite", "fix"], {
+              stdio: options.verbose ? "inherit" : "ignore",
+              shell: true,
+            }).on("close", () => resolve());
+          });
+
+          // Re-stage files after formatting
+          await runGitCommand(["add", "-u", "."]);
         }
       }
 
-      if (!(commitSuccess || options.silent)) {
-        console.error("❌ Failed to commit after ${maxAttempts} attempts");
+      if (!commitSuccess) {
+        if (options.strict) {
+          console.error(
+            "❌ Failed to commit after 3 attempts with --no-verify"
+          );
+        } else {
+          console.error("❌ Failed to commit after multiple attempts");
+        }
         console.error("Please commit manually with: git add -u && git commit");
       }
     }
