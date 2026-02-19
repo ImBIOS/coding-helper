@@ -4,7 +4,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { Flags } from "@oclif/core";
 import * as accountsConfig from "../../config/accounts-config";
-import { playHookSound } from "../../lib/sounds";
 import { BaseCommand } from "../../oclif/base";
 
 /**
@@ -112,7 +111,6 @@ export default class AutoHook extends BaseCommand<typeof AutoHook> {
 
     // Play session start sound (unless silent mode)
     if (!flags.silent) {
-      playHookSound("session-start");
     }
   }
 

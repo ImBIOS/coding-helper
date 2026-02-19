@@ -93,11 +93,8 @@ export default class Claude extends BaseCommand<typeof Claude> {
         ANTHROPIC_BASE_URL: providerConfig.baseUrl,
         // ANTHROPIC_MODEL is NOT set - providers handle translation
         API_TIMEOUT_MS: "3000000",
+        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
       };
-
-      if (legacyProvider === "minimax") {
-        childEnv.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
-      }
 
       // Get args passed to this command
       const args = this.argv;
@@ -121,11 +118,8 @@ export default class Claude extends BaseCommand<typeof Claude> {
       ANTHROPIC_BASE_URL: activeAccount.baseUrl,
       // ANTHROPIC_MODEL is NOT set - providers handle translation
       API_TIMEOUT_MS: "3000000",
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
     };
-
-    if (activeAccount.provider === "minimax") {
-      childEnv.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
-    }
 
     // Get args passed to this command
     const args = this.argv;

@@ -11,7 +11,6 @@ import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { Flags } from "@oclif/core";
 import { Box, Text } from "ink";
-import { playHookSound } from "../../lib/sounds";
 import { BaseCommand } from "../../oclif/base";
 import { Info, Section, Success, Warning } from "../../ui/index";
 
@@ -368,7 +367,6 @@ export default class PostTool extends BaseCommand<typeof PostTool> {
 
     // Play sound after formatting completes (if any files were formatted)
     if (formattedCount > 0) {
-      playHookSound("post-tool");
     }
 
     if (!options.silent) {

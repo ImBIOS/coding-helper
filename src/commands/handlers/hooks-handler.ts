@@ -31,7 +31,7 @@ export async function handleHooksSetup(): Promise<void> {
   // Hook commands - using cohe CLI directly for auto-updates
   const sessionStartCommand = "cohe auto hook --silent";
   const postToolCommand = "cohe hooks post-tool --silent";
-  const stopCommand = "cohe hooks stop --silent";
+  const stopCommand = "cohe hooks stop"; // No --silent to enable notifications and sounds
 
   try {
     // Read existing settings or create new
@@ -300,7 +300,7 @@ export async function handleHooksStatus(): Promise<void> {
     },
     {
       name: "Stop",
-      command: "cohe hooks stop --silent",
+      command: "cohe hooks stop",
       registered: false,
       hookType: "notify",
     },

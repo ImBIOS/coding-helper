@@ -51,11 +51,8 @@ export default class Rotate extends BaseCommand<typeof Rotate> {
             ANTHROPIC_AUTH_TOKEN: newAccount.apiKey,
             ANTHROPIC_BASE_URL: newAccount.baseUrl,
             API_TIMEOUT_MS: "3000000",
+            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1,
           };
-
-          if (newAccount.provider === "minimax") {
-            env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = 1;
-          }
 
           settings.env = env;
           require("node:fs").writeFileSync(

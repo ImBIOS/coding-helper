@@ -151,11 +151,8 @@ export async function getAutoRotatedEnv(
       ANTHROPIC_BASE_URL: activeAccount.baseUrl,
       // ANTHROPIC_MODEL is NOT set - providers handle translation
       API_TIMEOUT_MS: "3000000",
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
     };
-
-    if (activeAccount.provider === "minimax") {
-      env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
-    }
 
     return env;
   }
@@ -177,11 +174,8 @@ export async function getAutoRotatedEnv(
     ANTHROPIC_BASE_URL: providerConfig.baseUrl,
     // ANTHROPIC_MODEL is NOT set - providers handle translation
     API_TIMEOUT_MS: "3000000",
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
   };
-
-  if (legacyProvider === "minimax") {
-    env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
-  }
 
   return env;
 }
@@ -301,11 +295,8 @@ function getAutoRotatedEnvSync(): Record<string, string | undefined> {
       ANTHROPIC_BASE_URL: activeAccount.baseUrl,
       // ANTHROPIC_MODEL is NOT set - providers handle translation
       API_TIMEOUT_MS: "3000000",
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
     };
-
-    if (activeAccount.provider === "minimax") {
-      env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
-    }
 
     return env;
   }
@@ -327,11 +318,8 @@ function getAutoRotatedEnvSync(): Record<string, string | undefined> {
     ANTHROPIC_BASE_URL: providerConfig.baseUrl,
     // ANTHROPIC_MODEL is NOT set - providers handle translation
     API_TIMEOUT_MS: "3000000",
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
   };
-
-  if (legacyProvider === "minimax") {
-    env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
-  }
 
   return env;
 }

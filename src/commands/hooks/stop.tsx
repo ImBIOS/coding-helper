@@ -10,15 +10,16 @@ import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { Flags } from "@oclif/core";
 import { Box, Text } from "ink";
-import { playHookSound } from "../../lib/sounds";
 import { BaseCommand } from "../../oclif/base";
 import { Info, Section, Warning } from "../../ui/index";
+
+type CommitMode = "critical" | "normal" | "none";
 
 interface StopOptions {
   silent: boolean;
   verbose: boolean;
   noCommit: boolean;
-  strict: boolean;
+  commitMode: CommitMode;
 }
 
 interface TranscriptEntry {
@@ -269,10 +270,11 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
     "no-commit": Flags.boolean({
       description: "Skip auto-commit",
     }),
-    strict: Flags.boolean({
+    mode: Flags.string({
       description:
-        "Use --no-verify after 3 failed attempts instead of retrying",
-      default: false,
+        "Commit mode: none (default, uses --no-verify), normal (3 attempts, last with --no-verify), critical (infinite retry until success)",
+      options: ["none", "normal", "critical"],
+      default: "none",
     }),
   };
 
@@ -282,7 +284,7 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
       silent: flags.silent ?? false,
       verbose: flags.verbose ?? false,
       noCommit: flags["no-commit"] ?? false,
-      strict: flags.strict ?? false,
+      commitMode: (flags.mode ?? "none") as CommitMode,
     };
 
     // Get transcript path from stdin
@@ -298,10 +300,9 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
     // Extract message from transcript
     const message = extractMessageFromTranscript(transcriptPath, 100);
 
-    // Send notification and play sound
+    // Send notification
     if (!options.silent || options.verbose) {
       sendNotification("Claude Code", message);
-      playHookSound("stop");
     }
 
     // Check for uncommitted changes
@@ -344,18 +345,17 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
       // Try to commit with pre-commit checks
       let commitSuccess = false;
       let attempts = 0;
-      const maxInitialAttempts = 3;
-      const maxStrictAttempts = 3;
+      const maxNormalAttempts = 3;
 
-      // In non-strict mode, we loop until successful (or user interrupts)
-      // In strict mode, we try maxStrictAttempts times then use --no-verify
+      // none: single attempt with --no-verify (skip pre-commit entirely)
+      // normal: up to 3 attempts, last one uses --no-verify
+      // critical: infinite retry with formatter until success
       while (!commitSuccess) {
         attempts++;
 
-        // First 3 attempts: try without --no-verify
-        // After 3 attempts in strict mode: use --no-verify
-        // In non-strict mode: keep retrying without --no-verify
-        const useNoVerify = options.strict && attempts > maxInitialAttempts;
+        const useNoVerify =
+          options.commitMode === "none" ||
+          (options.commitMode === "normal" && attempts >= maxNormalAttempts);
 
         const commitArgs = [
           "commit",
@@ -380,10 +380,12 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
             );
           }
         } else {
-          // Pre-commit failed - try to fix and retry
-          const shouldRetry = options.strict
-            ? attempts < maxStrictAttempts
-            : true;
+          // none mode: single attempt, already used --no-verify, give up
+          // normal mode: retry up to maxNormalAttempts
+          // critical mode: always retry
+          const shouldRetry =
+            options.commitMode === "critical" ||
+            (options.commitMode === "normal" && attempts < maxNormalAttempts);
 
           if (!shouldRetry) {
             break;
@@ -408,13 +410,7 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
       }
 
       if (!commitSuccess) {
-        if (options.strict) {
-          console.error(
-            "❌ Failed to commit after 3 attempts with --no-verify"
-          );
-        } else {
-          console.error("❌ Failed to commit after multiple attempts");
-        }
+        console.error("❌ Failed to commit after multiple attempts");
         console.error("Please commit manually with: git add -u && git commit");
       }
     }

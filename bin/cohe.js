@@ -115,6 +115,7 @@ async function main() {
       dashboard: () => importCmd("src/commands/dashboard/index.tsx"),
       compare: () => importCmd("src/commands/compare/index.tsx"),
       hooks: () => importCmd("src/commands/hooks/index.tsx"),
+      sounds: () => importCmd("src/commands/sounds/index.tsx"),
     };
 
     // Topic subcommand mapping
@@ -173,6 +174,9 @@ async function main() {
         status: () => importCmd("src/commands/hooks/status.tsx"),
         "post-tool": () => importCmd("src/commands/hooks/post-tool.tsx"),
         stop: () => importCmd("src/commands/hooks/stop.tsx"),
+      },
+      sounds: {
+        install: () => importCmd("src/commands/sounds/install.tsx"),
       },
     };
 
