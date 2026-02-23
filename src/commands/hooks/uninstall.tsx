@@ -37,7 +37,7 @@ const COHE_HOOK_EVENTS = [
 
 /** Matches any cohe hook command (current and legacy) */
 const COHE_COMMAND_PATTERN =
-  /hooks session-start|hooks notify|hooks post-tool|hooks stop|auto hook|auto-rotate\.sh|cohe notify/;
+  /hooks session-start|hooks notification|hooks notify|hooks post-tool|hooks stop|auto hook|auto-rotate\.sh|cohe notify/;
 
 export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
   static description = "Remove all Claude Code hooks";
@@ -164,7 +164,7 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
                 Auto-rotation, formatting, notifications, and commit prompts are
                 no longer automatic.
               </Info>
-              <Info>To re-enable hooks, run "cohe hooks setup".</Info>
+              <Info>To re-enable hooks, run "cohe hooks install".</Info>
             </Box>
           </Box>
         </Section>

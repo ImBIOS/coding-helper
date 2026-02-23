@@ -4,18 +4,20 @@ import { Flags } from "@oclif/core";
 import { BaseCommand } from "../../oclif/base";
 
 /**
- * Notify hook - Show desktop notifications for Claude Code events.
+ * Notification hook - Show desktop notifications for Claude Code events.
  *
  * This command reads hook input from stdin to extract transcript information,
  * then shows desktop notifications with the task details.
  *
- * Usage: cohe hooks notify [--message "default message"]
+ * Usage: cohe hooks notification [--message "default message"]
  */
-export default class HooksNotify extends BaseCommand<typeof HooksNotify> {
+export default class HooksNotification extends BaseCommand<
+  typeof HooksNotification
+> {
   static description = "Show desktop notifications for Claude Code events";
   static examples = [
-    "<%= config.bin %> hooks notify",
-    "<%= config.bin %> hooks notify --message 'Task completed'",
+    "<%= config.bin %> hooks notification",
+    "<%= config.bin %> hooks notification --message 'Task completed'",
   ];
 
   static flags = {
@@ -30,7 +32,7 @@ export default class HooksNotify extends BaseCommand<typeof HooksNotify> {
   };
 
   async run(): Promise<void> {
-    const { flags } = await this.parse(HooksNotify);
+    const { flags } = await this.parse(HooksNotification);
 
     // Read hook input from stdin
     let hookInput = "";

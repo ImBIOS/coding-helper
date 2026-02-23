@@ -49,9 +49,9 @@ const COHE_HOOKS: Array<{
   {
     event: "Notification",
     matcher: "permission_prompt|idle_prompt|elicitation_dialog",
-    command: "cohe hooks notify",
+    command: "cohe hooks notification",
     description: "Desktop notifications for prompts and dialogs",
-    detectPattern: "hooks notify|cohe notify",
+    detectPattern: "hooks notification|hooks notify|cohe notify",
   },
   {
     event: "PostToolUse",
@@ -68,9 +68,9 @@ const COHE_HOOKS: Array<{
   },
 ];
 
-export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
+export default class HooksInstall extends BaseCommand<typeof HooksInstall> {
   static description = "Install all Claude Code hooks globally";
-  static examples = ["<%= config.bin %> hooks setup"];
+  static examples = ["<%= config.bin %> hooks install"];
 
   async run(): Promise<void> {
     const claudeSettingsPath = path.join(os.homedir(), ".claude");
