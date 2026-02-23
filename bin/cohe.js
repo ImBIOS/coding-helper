@@ -100,6 +100,7 @@ async function main() {
       history: () => importCmd("src/commands/history.tsx"),
       "first-run": () => importCmd("src/commands/first-run.tsx"),
       init: () => importCmd("src/commands/first-run.tsx"),
+      notify: () => importCmd("src/commands/notify.tsx"),
 
       // Complex commands
       claude: () => importCmd("src/commands/claude.tsx"),

@@ -11,7 +11,8 @@ export type InferredArgs<T extends typeof Command> = Interfaces.InferredArgs<
 >;
 
 /**
- * Check for MiniMax accounts without groupId and show warning (non-blocking)
+ * Check for MiniMax accounts without groupId and show warning (non-blocking).
+ * Skipped when --silent is passed (hook context) to avoid unnecessary I/O.
  */
 function checkMiniMaxGroupId(): void {
   try {
@@ -48,9 +49,6 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
   private inkInstance: Instance | null = null;
 
   public async init(): Promise<void> {
-    // Check for MiniMax accounts without groupId and show warning
-    checkMiniMaxGroupId();
-
     // Parse arguments using oclif's parser
     try {
       const { args, flags } = await this.parse({
@@ -73,6 +71,13 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
       } else {
         throw error;
       }
+    }
+
+    // Only run MiniMax groupId check for interactive (non-silent) commands
+    // This avoids unnecessary config I/O in hook context
+    const isSilent = this.argv.includes("--silent");
+    if (!isSilent) {
+      checkMiniMaxGroupId();
     }
   }
 

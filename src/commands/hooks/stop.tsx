@@ -198,9 +198,18 @@ function runGitCommand(
 async function generateConventionalCommit(
   message: string
 ): Promise<string | null> {
-  // Get diff to help Claude understand what changed
+  // Get diff stat to help generate a good commit message
   const diffResult = await runGitCommand(["diff", "--cached", "--stat"]);
   const stagedFiles = diffResult.success ? diffResult.output : "";
+
+  // Get a short diff for more context (limit to avoid huge payloads)
+  const shortDiff = await runGitCommand([
+    "diff",
+    "--cached",
+    "--no-color",
+    "-U1",
+  ]);
+  const diffContent = shortDiff.success ? shortDiff.output.slice(0, 4000) : "";
 
   return new Promise((resolve) => {
     const prompt = `Generate a conventional commit message for this change.
@@ -210,36 +219,22 @@ Message from user: ${message}
 Staged files:
 ${stagedFiles || "No staged files"}
 
-Follow conventional commits format:
-- feat: A new feature
-- fix: A bug fix
-- docs: Documentation only changes
-- style: Changes that do not affect the meaning of the code (white-space, formatting, etc)
-- refactor: A code change that neither fixes a bug nor adds a feature
-- perf: A code change that improves performance
-- test: Adding missing tests or correcting existing tests
-- build: Changes that affect the build system or external dependencies
-- ci: Changes to CI configuration files and scripts
-- chore: Other changes that don't modify src or test files
-- revert: Reverts a previous commit
+Diff (truncated):
+${diffContent || "No diff available"}
 
+Follow conventional commits format (feat/fix/docs/style/refactor/perf/test/build/ci/chore/revert).
 Include a short description (under 72 characters). Be specific about what changed.
-
 Return ONLY the commit message, no explanation or formatting.`;
 
-    const proc = spawn(
-      "claude",
-      [
-        "-p",
-        "--output-format",
-        "text",
-        "--allowedTools",
-        "Bash(git *),Read,Edit",
-      ],
-      {
-        stdio: ["pipe", "pipe", "pipe"],
-      }
-    );
+    const proc = spawn("claude", ["-p", "--output-format", "text"], {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        // Prevent recursive hook invocations: child claude -p inherits this,
+        // and the Stop hook exits early when it sees it.
+        COHE_IN_HOOK: "1",
+      },
+    });
 
     let output = "";
     proc.stdout.on("data", (data) => (output += data.toString()));
@@ -289,6 +284,13 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
   };
 
   async run(): Promise<void> {
+    // Guard against recursive hook invocations.
+    // When this hook spawns `claude -p` for commit message generation,
+    // the child process inherits COHE_IN_HOOK=1 — so its Stop hook exits immediately.
+    if (process.env.COHE_IN_HOOK === "1") {
+      return;
+    }
+
     const { flags } = await this.parse(HooksStop);
     const options: StopOptions = {
       silent: flags.silent ?? false,

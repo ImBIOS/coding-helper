@@ -37,7 +37,7 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
     // Hook commands - using cohe CLI directly for auto-updates
     const sessionStartCommand = "cohe auto hook --silent";
     const postToolCommand = "cohe hooks post-tool --silent";
-    const stopCommand = "cohe hooks stop --silent";
+    const stopCommand = "cohe hooks stop";
 
     try {
       // Read existing settings or create new

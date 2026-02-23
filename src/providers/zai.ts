@@ -39,7 +39,7 @@ export class ZAIProvider implements Provider {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10_000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
       const response = await fetch(
         "https://api.z.ai/api/monitor/usage/quota/limit",

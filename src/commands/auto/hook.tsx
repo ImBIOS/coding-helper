@@ -36,6 +36,11 @@ export default class AutoHook extends BaseCommand<typeof AutoHook> {
   };
 
   async run(): Promise<void> {
+    // Skip when running inside a hook-spawned claude -p (recursion guard)
+    if (process.env.COHE_IN_HOOK === "1") {
+      return;
+    }
+
     const { flags } = await this.parse(AutoHook);
 
     // Get the config to check if rotation is enabled
@@ -117,8 +122,28 @@ export default class AutoHook extends BaseCommand<typeof AutoHook> {
   /**
    * Install Z.AI coding plugins from the marketplace.
    * Only runs for Z.AI provider, not MiniMax.
+   * Uses a cache marker file to skip re-checking if plugins were installed recently (1 hour TTL).
    */
   private installZaiPlugins(silent: boolean): void {
+    // Check cache marker to avoid spawning claude CLI processes every session
+    const homeDir = process.env.HOME || homedir();
+    const cacheMarker = join(homeDir, ".claude", ".zai-plugins-installed");
+    const PLUGIN_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+    if (existsSync(cacheMarker)) {
+      try {
+        const markerTime = Number.parseInt(
+          readFileSync(cacheMarker, "utf-8").trim(),
+          10
+        );
+        if (Date.now() - markerTime < PLUGIN_CACHE_TTL_MS) {
+          return; // Plugins were installed recently, skip
+        }
+      } catch {
+        // Invalid marker, proceed with installation
+      }
+    }
+
     try {
       // Check if marketplace is already added
       const installedMarkets = execSync("claude plugin marketplace list", {
@@ -165,6 +190,9 @@ export default class AutoHook extends BaseCommand<typeof AutoHook> {
           }
         }
       }
+
+      // Write cache marker on success
+      writeFileSync(cacheMarker, String(Date.now()));
     } catch (error) {
       if (!silent) {
         console.error("Failed to install Z.AI plugins:", error);

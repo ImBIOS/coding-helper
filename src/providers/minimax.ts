@@ -43,7 +43,7 @@ export class MiniMaxProvider implements Provider {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10_000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
       // TODO: `groupId` is mandatory, it should not optional, it should throw error or something
       const url = groupId

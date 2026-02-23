@@ -397,13 +397,30 @@ export function configureRotation(
  * Fetch real usage data from provider API and update account config
  * This ensures least-used rotation uses accurate, up-to-date data
  *
+ * Uses a TTL cache to avoid hitting APIs on every session start/resume/clear/compact.
+ * Default TTL: 5 minutes.
+ *
  * For rotation comparison, uses the DISPLAYED percentage:
  * - ZAI: Uses MCP usage percentage (mcpUsage.percentUsed)
  * - MiniMax: Uses remaining percentage (percentRemaining) - what's displayed
  *
  * This ensures rotation matches what the user sees in `cohe usage`
  */
+const USAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 async function fetchAndUpdateUsage(account: AccountConfig): Promise<number> {
+  // Check if cached usage is still fresh
+  if (account.usage?.lastUpdated) {
+    const age = Date.now() - new Date(account.usage.lastUpdated).getTime();
+    if (age < USAGE_CACHE_TTL_MS && account.usage.limit > 0) {
+      // Use cached data — skip API call
+      if (account.provider === "zai") {
+        return (account.usage.used / account.usage.limit) * 100;
+      }
+      return (account.usage.used / account.usage.limit) * 100;
+    }
+  }
+
   try {
     // Dynamically import providers to avoid circular dependencies
     const { zaiProvider } = await import("../providers/zai.js");

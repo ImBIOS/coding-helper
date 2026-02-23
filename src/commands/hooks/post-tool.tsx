@@ -26,18 +26,17 @@ interface FormatResult {
   formatted: boolean;
 }
 
-async function hasCommand(cmd: string): Promise<boolean> {
-  try {
-    const which = spawn("which", [cmd], {
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    return new Promise((resolve) => {
-      which.on("close", (code) => resolve(code === 0));
-      which.on("error", () => resolve(false));
-    });
-  } catch {
-    return false;
-  }
+// Module-level cache for command availability — survives across formatFile calls
+const commandCache = new Map<string, boolean>();
+
+function hasCommand(cmd: string): boolean {
+  const cached = commandCache.get(cmd);
+  if (cached !== undefined) return cached;
+
+  // Bun.which() is sync and doesn't spawn a process
+  const found = Bun.which(cmd) !== null;
+  commandCache.set(cmd, found);
+  return found;
 }
 
 async function runCommand(
@@ -60,13 +59,13 @@ async function runCommand(
 }
 
 async function formatBiome(file: string): Promise<boolean> {
-  if (!(await hasCommand("biome"))) return false;
+  if (!hasCommand("biome")) return false;
   const result = await runCommand("biome", ["format", "--write", file]);
   return result.success;
 }
 
 async function formatJson(file: string): Promise<boolean> {
-  if (!(await hasCommand("jq"))) return false;
+  if (!hasCommand("jq")) return false;
   const tmpFile = `${file}.tmp_${Date.now()}`;
   try {
     fs.writeFileSync(tmpFile, fs.readFileSync(file));
@@ -83,24 +82,24 @@ async function formatJson(file: string): Promise<boolean> {
 }
 
 async function formatGo(file: string): Promise<boolean> {
-  if (!(await hasCommand("gofmt"))) return false;
+  if (!hasCommand("gofmt")) return false;
   const result = await runCommand("gofmt", ["-w", file]);
   return result.success;
 }
 
 async function formatRust(file: string): Promise<boolean> {
-  if (!(await hasCommand("rustfmt"))) return false;
+  if (!hasCommand("rustfmt")) return false;
   const result = await runCommand("rustfmt", [file]);
   return result.success;
 }
 
 async function formatPython(file: string): Promise<boolean> {
   let formatted = false;
-  if (await hasCommand("black")) {
+  if (hasCommand("black")) {
     await runCommand("black", [file]);
     formatted = true;
   }
-  if (await hasCommand("isort")) {
+  if (hasCommand("isort")) {
     await runCommand("isort", ["--quiet", file]);
     formatted = true;
   }
@@ -108,31 +107,31 @@ async function formatPython(file: string): Promise<boolean> {
 }
 
 async function formatCpp(file: string): Promise<boolean> {
-  if (!(await hasCommand("clang-format"))) return false;
+  if (!hasCommand("clang-format")) return false;
   const result = await runCommand("clang-format", ["-i", file]);
   return result.success;
 }
 
 async function formatShell(file: string): Promise<boolean> {
-  if (!(await hasCommand("shfmt"))) return false;
+  if (!hasCommand("shfmt")) return false;
   const result = await runCommand("shfmt", ["-w", "-i", "2", file]);
   return result.success;
 }
 
 async function formatPrettier(file: string): Promise<boolean> {
-  if (!(await hasCommand("prettier"))) return false;
+  if (!hasCommand("prettier")) return false;
   const result = await runCommand("prettier", ["--write", file]);
   return result.success;
 }
 
 async function formatYq(file: string): Promise<boolean> {
-  if (!(await hasCommand("yq"))) return false;
+  if (!hasCommand("yq")) return false;
   const result = await runCommand("yq", ["eval", "-i", file]);
   return result.success;
 }
 
 async function formatTaplo(file: string): Promise<boolean> {
-  if (!(await hasCommand("taplo"))) return false;
+  if (!hasCommand("taplo")) return false;
   const result = await runCommand("taplo", ["fmt", file]);
   return result.success;
 }
@@ -302,6 +301,11 @@ export default class PostTool extends BaseCommand<typeof PostTool> {
   };
 
   async run(): Promise<void> {
+    // Skip when running inside a hook-spawned claude -p (recursion guard)
+    if (process.env.COHE_IN_HOOK === "1") {
+      return;
+    }
+
     const { flags } = await this.parse(PostTool);
     const options: FormatOptions = {
       silent: flags.silent ?? false,
@@ -370,14 +374,6 @@ export default class PostTool extends BaseCommand<typeof PostTool> {
     }
 
     if (!options.silent) {
-      if (options.verbose) {
-        for (const result of results) {
-          if (result.formatted) {
-            results.push(result);
-          }
-        }
-      }
-
       await this.renderApp(
         <Section title="Post-Tool Format">
           <Box flexDirection="column">
