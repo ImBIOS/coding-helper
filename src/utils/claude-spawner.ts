@@ -33,10 +33,13 @@ export async function spawnClaudeInstance(
   require("node:fs").writeFileSync(promptPath, prompt);
 
   return new Promise((resolve) => {
+    // Use -p flag for programmatic execution per official docs
     const child = spawn(
       claudeCli,
       [
-        "",
+        "-p",
+        "--output-format",
+        "text",
         "--continue",
         "--no-color",
         "--model",
@@ -57,7 +60,7 @@ export async function spawnClaudeInstance(
     let stdout = "";
     let stderr = "";
 
-    // Send prompt to Claude
+    // Send prompt to Claude via stdin (per official docs)
     child.stdin.write(prompt);
     child.stdin.end();
 

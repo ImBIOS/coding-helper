@@ -227,9 +227,19 @@ Include a short description (under 72 characters). Be specific about what change
 
 Return ONLY the commit message, no explanation or formatting.`;
 
-    const proc = spawn("claude", ["--headless", "--output-format", "text"], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const proc = spawn(
+      "claude",
+      [
+        "-p",
+        "--output-format",
+        "text",
+        "--allowedTools",
+        "Bash(git *),Read,Edit",
+      ],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+      }
+    );
 
     let output = "";
     proc.stdout.on("data", (data) => (output += data.toString()));
