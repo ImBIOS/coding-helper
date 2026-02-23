@@ -23,6 +23,10 @@ export default class Notify extends BaseCommand<typeof Notify> {
       description: "Default message if no transcript found",
       default: "Task completed",
     }),
+    silent: Flags.boolean({
+      description: "Suppress actual notifications (for testing)",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -55,7 +59,9 @@ export default class Notify extends BaseCommand<typeof Notify> {
       message = `${message.slice(0, 97)}...`;
     }
 
-    this.showNotification(message);
+    if (!flags.silent) {
+      this.showNotification(message);
+    }
   }
 
   /**
