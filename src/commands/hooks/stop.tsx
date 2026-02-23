@@ -391,6 +391,16 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
               `✅ Changes committed${useNoVerify ? " (with --no-verify)" : ""}`
             );
           }
+
+          // Auto-push after commit
+          const pushResult = await runGitCommand(["push"]);
+          if (pushResult.success) {
+            if (!options.silent) {
+              console.log("✅ Pushed to remote");
+            }
+          } else if (options.verbose) {
+            console.log(`⚠️  Push failed: ${pushResult.output.split("\n")[0]}`);
+          }
         } else {
           // none mode: single attempt, already used --no-verify, give up
           // normal mode: retry up to maxNormalAttempts

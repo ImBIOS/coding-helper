@@ -16,15 +16,28 @@ interface HookGroup {
 }
 
 interface HooksConfig {
-  SessionStart?: HookGroup[];
-  PostToolUse?: HookGroup[];
-  Stop?: HookGroup[];
+  [key: string]: HookGroup[] | undefined;
 }
 
 interface ClaudeSettings {
   hooks?: HooksConfig;
   [key: string]: unknown;
 }
+
+/**
+ * All hook events and command patterns that cohe manages.
+ * Used to detect and remove our hooks from settings.json.
+ */
+const COHE_HOOK_EVENTS = [
+  "SessionStart",
+  "Notification",
+  "PostToolUse",
+  "Stop",
+] as const;
+
+/** Matches any cohe hook command (current and legacy) */
+const COHE_COMMAND_PATTERN =
+  /hooks session-start|hooks notify|hooks post-tool|hooks stop|auto hook|auto-rotate\.sh|cohe notify/;
 
 export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
   static description = "Remove all Claude Code hooks";
@@ -50,6 +63,16 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
         hookRemoved = true;
       }
 
+      // Remove plugin cache marker
+      const cacheMarker = path.join(
+        os.homedir(),
+        ".claude",
+        ".zai-plugins-installed"
+      );
+      if (fs.existsSync(cacheMarker)) {
+        fs.unlinkSync(cacheMarker);
+      }
+
       // Update settings.json to remove all cohe hooks
       if (fs.existsSync(settingsFilePath)) {
         const content = fs.readFileSync(settingsFilePath, "utf-8");
@@ -61,44 +84,33 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
           settings = {};
         }
 
-        const hookTypes = ["SessionStart", "PostToolUse", "Stop"] as const;
-
-        for (const hookType of hookTypes) {
+        for (const hookType of COHE_HOOK_EVENTS) {
           if (settings.hooks?.[hookType]) {
-            const originalLength = settings.hooks[hookType].length;
+            const originalLength = settings.hooks[hookType]!.length;
 
-            settings.hooks[hookType] = settings.hooks[hookType].filter(
+            settings.hooks[hookType] = settings.hooks[hookType]!.filter(
               (hookGroup) => {
                 if (!(hookGroup.hooks && Array.isArray(hookGroup.hooks))) {
                   return true;
                 }
 
-                const hasOurHook = hookGroup.hooks.some((hookConfig) => {
-                  if (hookConfig.type !== "command" || !hookConfig.command) {
-                    return false;
-                  }
-
-                  const cmd = hookConfig.command;
-                  return (
-                    cmd === hookScriptPath ||
-                    cmd.includes("auto-rotate.sh") ||
-                    cmd.includes("auto hook") ||
-                    cmd === "cohe auto hook --silent" ||
-                    cmd.includes("hooks post-tool") ||
-                    cmd.includes("hooks stop")
-                  );
-                });
+                const hasOurHook = hookGroup.hooks.some(
+                  (hookConfig) =>
+                    hookConfig.type === "command" &&
+                    hookConfig.command &&
+                    COHE_COMMAND_PATTERN.test(hookConfig.command)
+                );
 
                 return !hasOurHook;
               }
             );
 
-            if (settings.hooks[hookType].length !== originalLength) {
-              hooksRemoved += originalLength - settings.hooks[hookType].length;
+            if (settings.hooks[hookType]!.length !== originalLength) {
+              hooksRemoved += originalLength - settings.hooks[hookType]!.length;
               settingsModified = true;
 
               // Clean up empty arrays
-              if (settings.hooks[hookType].length === 0) {
+              if (settings.hooks[hookType]!.length === 0) {
                 delete settings.hooks[hookType];
               }
             }
@@ -149,21 +161,22 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
             )}
             <Box flexDirection="column" marginTop={1}>
               <Info>
-                Auto-rotation, formatting, and notifications are no longer
-                automatic.
+                Auto-rotation, formatting, notifications, and commit prompts are
+                no longer automatic.
               </Info>
               <Info>To re-enable hooks, run "cohe hooks setup".</Info>
             </Box>
           </Box>
         </Section>
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       await this.renderApp(
         <Section title="Hooks Uninstall">
           <Box flexDirection="column">
             <ErrorBadge>Failed to uninstall hooks</ErrorBadge>
             <Box marginTop={1}>
-              <Text color="red">{error.message}</Text>
+              <Text color="red">{err.message}</Text>
             </Box>
           </Box>
         </Section>

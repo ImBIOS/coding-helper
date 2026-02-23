@@ -17,14 +17,56 @@ interface HookGroup {
 
 interface HooksConfig {
   SessionStart?: HookGroup[];
+  Notification?: HookGroup[];
   PostToolUse?: HookGroup[];
   Stop?: HookGroup[];
+  [key: string]: HookGroup[] | undefined;
 }
 
 interface ClaudeSettings {
   hooks?: HooksConfig;
   [key: string]: unknown;
 }
+
+/**
+ * All hooks that cohe installs, keyed by Claude Code hook event name.
+ */
+const COHE_HOOKS: Array<{
+  event: string;
+  matcher?: string;
+  command: string;
+  description: string;
+  /** Pattern to detect existing hook (for idempotency) */
+  detectPattern: string;
+}> = [
+  {
+    event: "SessionStart",
+    matcher: "startup|resume|clear|compact",
+    command: "cohe hooks session-start --silent",
+    description: "Auto-rotate API keys on startup",
+    detectPattern: "hooks session-start|auto hook",
+  },
+  {
+    event: "Notification",
+    matcher: "permission_prompt|idle_prompt|elicitation_dialog",
+    command: "cohe hooks notify",
+    description: "Desktop notifications for prompts and dialogs",
+    detectPattern: "hooks notify|cohe notify",
+  },
+  {
+    event: "PostToolUse",
+    matcher: "Write|Edit",
+    command: "cohe hooks post-tool --silent",
+    description: "Format files after Write|Edit",
+    detectPattern: "hooks post-tool",
+  },
+  {
+    event: "Stop",
+    command: "cohe hooks stop",
+    description: "Notifications + commit prompt on session end",
+    detectPattern: "hooks stop",
+  },
+];
 
 export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
   static description = "Install all Claude Code hooks globally";
@@ -33,11 +75,6 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
   async run(): Promise<void> {
     const claudeSettingsPath = path.join(os.homedir(), ".claude");
     const settingsFilePath = path.join(claudeSettingsPath, "settings.json");
-
-    // Hook commands - using cohe CLI directly for auto-updates
-    const sessionStartCommand = "cohe auto hook --silent";
-    const postToolCommand = "cohe hooks post-tool --silent";
-    const stopCommand = "cohe hooks stop";
 
     try {
       // Read existing settings or create new
@@ -59,86 +96,35 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
       let hooksInstalled = 0;
       let hooksSkipped = 0;
 
-      // Install SessionStart hook (auto-rotate)
-      if (!settings.hooks.SessionStart) {
-        settings.hooks.SessionStart = [];
-      }
-      const sessionStartExists = settings.hooks.SessionStart.some((hookGroup) =>
-        hookGroup.hooks.some(
-          (hookConfig) =>
-            hookConfig.type === "command" &&
-            hookConfig.command &&
-            (hookConfig.command === sessionStartCommand ||
-              hookConfig.command.includes("auto hook") ||
-              hookConfig.command.includes("auto-rotate.sh"))
-        )
-      );
-      if (sessionStartExists) {
-        hooksSkipped++;
-      } else {
-        settings.hooks.SessionStart.push({
-          matcher: "startup|resume|clear|compact",
-          hooks: [
-            {
-              type: "command",
-              command: sessionStartCommand,
-            },
-          ],
-        });
-        hooksInstalled++;
-      }
+      for (const hookDef of COHE_HOOKS) {
+        const { event, matcher, command, detectPattern } = hookDef;
 
-      // Install PostToolUse hook (format files)
-      if (!settings.hooks.PostToolUse) {
-        settings.hooks.PostToolUse = [];
-      }
-      const postToolExists = settings.hooks.PostToolUse.some((hookGroup) =>
-        hookGroup.hooks.some(
-          (hookConfig) =>
-            hookConfig.type === "command" &&
-            hookConfig.command &&
-            hookConfig.command.includes("hooks post-tool")
-        )
-      );
-      if (postToolExists) {
-        hooksSkipped++;
-      } else {
-        settings.hooks.PostToolUse.push({
-          matcher: "Write|Edit",
-          hooks: [
-            {
-              type: "command",
-              command: postToolCommand,
-            },
-          ],
-        });
-        hooksInstalled++;
-      }
+        if (!settings.hooks[event]) {
+          settings.hooks[event] = [];
+        }
 
-      // Install Stop hook (notifications)
-      if (!settings.hooks.Stop) {
-        settings.hooks.Stop = [];
-      }
-      const stopExists = settings.hooks.Stop.some((hookGroup) =>
-        hookGroup.hooks.some(
-          (hookConfig) =>
-            hookConfig.type === "command" &&
-            hookConfig.command &&
-            hookConfig.command.includes("hooks stop")
-        )
-      );
-      if (stopExists) {
-        hooksSkipped++;
-      } else {
-        settings.hooks.Stop.push({
-          hooks: [
-            {
-              type: "command",
-              command: stopCommand,
-            },
-          ],
-        });
-        hooksInstalled++;
+        // Check if hook already exists (by matching command pattern)
+        const detectRegex = new RegExp(detectPattern);
+        const exists = settings.hooks[event]!.some((hookGroup) =>
+          hookGroup.hooks.some(
+            (hookConfig) =>
+              hookConfig.type === "command" &&
+              hookConfig.command &&
+              (hookConfig.command === command ||
+                detectRegex.test(hookConfig.command))
+          )
+        );
+
+        if (exists) {
+          hooksSkipped++;
+        } else {
+          const hookGroup: HookGroup = {
+            ...(matcher ? { matcher } : {}),
+            hooks: [{ type: "command", command }],
+          };
+          settings.hooks[event]!.push(hookGroup);
+          hooksInstalled++;
+        }
       }
 
       // Write updated settings
@@ -156,17 +142,13 @@ export default class HooksSetup extends BaseCommand<typeof HooksSetup> {
             </Box>
             <Box flexDirection="column" marginTop={1}>
               <Info>Installed hooks:</Info>
-              <Box marginLeft={2}>
-                <Text>• SessionStart: Auto-rotate API keys on startup</Text>
-              </Box>
-              <Box marginLeft={2}>
-                <Text>• PostToolUse: Format files after Write|Edit</Text>
-              </Box>
-              <Box marginLeft={2}>
-                <Text>
-                  • Stop: Notifications + commit prompt on session end
-                </Text>
-              </Box>
+              {COHE_HOOKS.map((h) => (
+                <Box key={h.event} marginLeft={2}>
+                  <Text>
+                    • {h.event}: {h.description}
+                  </Text>
+                </Box>
+              ))}
             </Box>
             <Box marginTop={1}>
               <Info>

@@ -173,6 +173,8 @@ async function main() {
         setup: () => importCmd("src/commands/hooks/setup.tsx"),
         uninstall: () => importCmd("src/commands/hooks/uninstall.tsx"),
         status: () => importCmd("src/commands/hooks/status.tsx"),
+        "session-start": () => importCmd("src/commands/hooks/session-start.tsx"),
+        notify: () => importCmd("src/commands/hooks/notify.tsx"),
         "post-tool": () => importCmd("src/commands/hooks/post-tool.tsx"),
         stop: () => importCmd("src/commands/hooks/stop.tsx"),
       },
@@ -184,10 +186,19 @@ async function main() {
     // Check if it's a topic command with subcommand
     const subcommand = commandArgs[0];
 
-    // Special case: auto hook runs directly (for SessionStart hook)
+    // Special case: hooks session-start runs directly (for SessionStart hook, perf-critical)
+    if (command === "hooks" && subcommand === "session-start") {
+      const HooksSessionStart = (await importCmd("src/commands/hooks/session-start.tsx")).default;
+      const cmd = new HooksSessionStart(commandArgs.slice(1), minimalConfig);
+      await cmd.init();
+      await cmd.run();
+      return;
+    }
+
+    // Backward compat: auto hook → hooks session-start
     if (command === "auto" && subcommand === "hook") {
-      const AutoHook = (await importCmd("src/commands/auto/hook.tsx")).default;
-      const cmd = new AutoHook(commandArgs.slice(1), minimalConfig);
+      const HooksSessionStart = (await importCmd("src/commands/hooks/session-start.tsx")).default;
+      const cmd = new HooksSessionStart(commandArgs.slice(1), minimalConfig);
       await cmd.init();
       await cmd.run();
       return;
