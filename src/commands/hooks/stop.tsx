@@ -312,11 +312,6 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
     // Extract message from transcript
     const message = extractMessageFromTranscript(transcriptPath, 100);
 
-    // Send notification
-    if (!options.silent || options.verbose) {
-      sendNotification("Claude Code", message);
-    }
-
     // Check for uncommitted changes
     const changes = await hasUncommittedChanges();
     const hasChanges = changes.staged || changes.unstaged || changes.untracked;
@@ -435,6 +430,11 @@ export default class HooksStop extends BaseCommand<typeof HooksStop> {
         console.error("❌ Failed to commit after multiple attempts");
         console.error("Please commit manually with: git add -u && git commit");
       }
+    }
+
+    // Send notification after commit and push
+    if (!options.silent || options.verbose) {
+      sendNotification("Claude Code", message);
     }
 
     if (options.silent) {
