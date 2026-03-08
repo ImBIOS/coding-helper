@@ -77,7 +77,8 @@
     "claude-code",
     "cli",
     "glm",
-    "minimax"
+    "minimax",
+    "opencode"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",

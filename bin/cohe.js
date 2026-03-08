@@ -106,6 +106,7 @@ async function main() {
       claude: () => importCmd("src/commands/claude.tsx"),
       rotate: () => importCmd("src/commands/rotate.tsx"),
       plugin: () => importCmd("src/commands/plugin.tsx"),
+      opencode: () => importCmd("src/commands/opencode.tsx"),
 
       // Topic commands (index)
       profile: () => importCmd("src/commands/profile/index.tsx"),
