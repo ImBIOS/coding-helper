@@ -59,7 +59,7 @@ export default class Usage extends BaseCommand<typeof Usage> {
 
       // JSON output
       if (flags.json) {
-        this.log(
+        console.log(
           JSON.stringify(
             accountsWithUsage.map(
               ({ account, provider: prov, usage: usg }) => ({
@@ -101,7 +101,7 @@ export default class Usage extends BaseCommand<typeof Usage> {
 
     if (!activeAccount) {
       if (flags.json) {
-        this.error("No active account configured. Run 'cohe config' first.");
+        console.error("No active account configured. Run 'cohe config' first.");
         return;
       }
       await this.renderApp(
@@ -122,7 +122,7 @@ export default class Usage extends BaseCommand<typeof Usage> {
 
     // JSON output
     if (flags.json) {
-      this.log(
+      console.log(
         JSON.stringify(
           {
             id: activeAccount.id,
