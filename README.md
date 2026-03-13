@@ -1,22 +1,23 @@
-# coding-helper - Z.AI & MiniMax API Manager for Claude Code
+# coding-helper - Z.AI, MiniMax & OpenCode API Manager
 
 [![NPM Version](https://img.shields.io/npm/v/%40imbios%2Fcoding-helper?logo=npm)](https://www.npmjs.com/package/@imbios/coding-helper)
 [![NPM Downloads](https://img.shields.io/npm/dm/%40imbios%2Fcoding-helper)](https://www.npmjs.com/package/@imbios/coding-helper)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun-1.2.0+-black?logo=bun)](https://bun.sh)
 
-A powerful **CLI tool** and **Agent SDK wrapper** for seamless management of Z.AI (GLM) and MiniMax API providers. Switch between providers, manage multiple accounts, track usage, rotate API keys, and use with Claude Code or Claude Agent SDK directly from your code.
+A powerful **CLI tool** and **Agent SDK wrapper** for seamless management of Z.AI (GLM), MiniMax, and OpenCode API providers. Switch between providers, manage multiple accounts, track usage, rotate API keys, and use with Claude Code, OpenCode, or Claude Agent SDK directly from your code.
 
 ## What is coding-helper?
 
-coding-helper is a developer utility that enables Claude Code users to switch between Z.AI (GLM) and MiniMax API providers without code changes. It provides:
+coding-helper is a developer utility that enables users to switch between Z.AI (GLM), MiniMax, and OpenCode API providers without code changes. It provides:
 
-- **Provider switching** - Toggle between Z.AI and MiniMax instantly
+- **Provider switching** - Toggle between Z.AI, MiniMax, and OpenCode instantly
 - **Multi-account management** - Configure and switch between multiple API accounts
 - **API key rotation** - Automatic rotation with configurable strategies
 - **Usage tracking** - Monitor quotas, costs, and consumption in real-time
 - **Agent SDK integration** - Use auto-rotation directly in your code
 - **Claude Code wrapper** - Spawn Claude with automatic provider switching
+- **OpenCode support** - Experimental support for OpenCode (future default)
 
 ## Features
 
@@ -44,6 +45,7 @@ coding-helper is a developer utility that enables Claude Code users to switch be
 |---------|-------------|
 | **Agent SDK Wrapper** | Use auto-rotation in your code with `@imbios/coding-helper/sdk` |
 | **Claude Code Integration** | Spawn `claude` command with auto-rotation |
+| **OpenCode Integration** | Spawn `opencode` with auto-rotation (experimental) |
 | **Shell Completion** | Full tab completion for bash, zsh, fish |
 | **Web Dashboard** | Visual monitoring on port 3456 |
 
@@ -82,6 +84,29 @@ cohe status
 # View usage
 cohe usage
 ```
+
+### Using with OpenCode (Experimental)
+
+OpenCode is an open-source alternative to Claude Code. **This is experimental support** - we plan to make OpenCode the default in the future (unless Claude Code becomes open-source).
+
+> **Future Direction:** Once OpenCode matures and proves stable, it will become the default provider for `cohe` commands. This ensures users have an open-source, freely available AI coding assistant option. If Anthropic ever open-sources Claude Code, we will revert to supporting it as the default.
+
+```bash
+# Run opencode with auto-rotation
+cohe opencode
+
+# Pass through any opencode arguments
+cohe opencode --continue
+cohe opencode --help
+
+# Setup OpenCode configuration
+cohe opencode --setup
+
+# Check OpenCode status
+cohe opencode --status
+```
+
+OpenCode uses the same environment variable substitution as Claude Code, allowing seamless rotation between accounts.
 
 ### Using with Claude Code
 
@@ -226,6 +251,15 @@ cohe auto status
 |-------|------|----------|
 | `MiniMax-M2.1` | All | Latest flagship model |
 
+### OpenCode (Experimental)
+
+OpenCode uses the same underlying models (Z.AI, MiniMax) but provides an open-source CLI experience. The models available depend on your provider configuration.
+
+| Model | Provider | Use Case |
+|-------|----------|----------|
+| `claude-sonnet-4-5` | Z.AI | Claude 4.5 via Z.AI |
+| `MiniMax-M2.5` | MiniMax | Claude-compatible via MiniMax |
+
 ## Commands Reference
 
 ### Core Commands
@@ -261,7 +295,10 @@ cohe auto status
 
 | Command | Description |
 |---------|-------------|
-| `cohe claude [args...]` | Spawn Claude with auto-rotation |
+| `cohe claude [args...]` | Spawn Claude Code with auto-rotation |
+| `cohe opencode [args...]` | Spawn OpenCode with auto-rotation (experimental) |
+| `cohe opencode --setup` | Setup OpenCode configuration |
+| `cohe opencode --status` | Check OpenCode configuration status |
 | `cohe dashboard start [port]` | Start web dashboard |
 | `cohe alert list` | List usage alerts |
 | `cohe doctor` | Diagnose configuration issues |
@@ -332,6 +369,9 @@ cohe auto enable random --cross-provider
 
 # Use with Claude Code
 cohe claude
+
+# Or use OpenCode (experimental)
+cohe opencode
 ```
 
 ### Example 2: Using with Agent SDK
@@ -409,4 +449,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Keywords
 
-anthropic-api, claude-code, claude-agent-sdk, glm, minimax, api-client, cli-tool, provider-management, api-key-rotation, usage-tracking, auto-rotation, multi-account, developer-tools, ai-assistant, terminal-tool, zai-api, glmmodel, bun, typescript
+anthropic-api, claude-code, claude-agent-sdk, opencode, open-code, glm, minimax, api-client, cli-tool, provider-management, api-key-rotation, usage-tracking, auto-rotation, multi-account, developer-tools, ai-assistant, terminal-tool, zai-api, glmmodel, bun, typescript

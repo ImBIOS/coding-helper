@@ -3,7 +3,7 @@
 ## Project Intelligence File
 
 ### Project Overview
-CLI tool and Claude Code plugin for switching between Z.AI (GLM) and MiniMax API providers.
+CLI tool for switching between Z.AI (GLM), MiniMax, and OpenCode API providers. Supports both Claude Code and OpenCode (experimental, future default).
 Built with oclif framework and Ink (React for CLI UI), providing multi-account management, MCP server control, and auto-rotation capabilities.
 
 ### Terminology
