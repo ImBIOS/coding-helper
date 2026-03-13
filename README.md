@@ -42,10 +42,10 @@ coding-helper is a developer utility that enables Claude Code users to switch be
 
 | Feature | Description |
 |---------|-------------|
-| **Agent SDK Wrapper** - Use auto-rotation in your code with `@imbios/coding-helper/sdk` |
-| **Claude Code Integration** - Spawn `claude` command with auto-rotation |
-| **Shell Completion** - Full tab completion for bash, zsh, fish |
-| **Web Dashboard** - Visual monitoring on port 3456 |
+| **Agent SDK Wrapper** | Use auto-rotation in your code with `@imbios/coding-helper/sdk` |
+| **Claude Code Integration** | Spawn `claude` command with auto-rotation |
+| **Shell Completion** | Full tab completion for bash, zsh, fish |
+| **Web Dashboard** | Visual monitoring on port 3456 |
 
 ## Quick Start
 
