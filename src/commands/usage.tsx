@@ -1,7 +1,7 @@
 import { Flags } from "@oclif/core";
 import { Box } from "ink";
 import type React from "react";
-import * as accountsConfig from "../config/accounts-config";
+import { getActiveAccount, listAccounts } from "../config/accounts-config";
 import { BaseCommand } from "../oclif/base";
 import type { Provider, UsageStats } from "../providers/base";
 import { minimaxProvider } from "../providers/minimax";
@@ -19,6 +19,8 @@ export default class Usage extends BaseCommand<typeof Usage> {
     "<%= config.bin %> usage",
     "<%= config.bin %> usage --verbose",
     "<%= config.bin %> usage --all",
+    "<%= config.bin %> usage --json",
+    "<%= config.bin %> usage --all --json",
   ];
 
   static flags = {
@@ -30,13 +32,17 @@ export default class Usage extends BaseCommand<typeof Usage> {
       description: "Show usage for all accounts",
       default: false,
     }),
+    json: Flags.boolean({
+      description: "Output usage data as JSON",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
     const { flags } = await this.parse(Usage);
 
     // Use v2 accounts config
-    const accounts = accountsConfig.listAccounts();
+    const accounts = listAccounts();
 
     if (flags.all) {
       // Fetch usage for all accounts
@@ -50,6 +56,25 @@ export default class Usage extends BaseCommand<typeof Usage> {
           return { account, provider: provider.displayName, usage };
         })
       );
+
+      // JSON output
+      if (flags.json) {
+        this.log(
+          JSON.stringify(
+            accountsWithUsage.map(
+              ({ account, provider: prov, usage: usg }) => ({
+                id: account.id,
+                name: account.name,
+                provider: prov,
+                ...usg,
+              })
+            ),
+            null,
+            2
+          )
+        );
+        return;
+      }
 
       await this.renderApp(
         <Box flexDirection="column">
@@ -72,9 +97,13 @@ export default class Usage extends BaseCommand<typeof Usage> {
     }
 
     // Show usage for active account only
-    const activeAccount = accountsConfig.getActiveAccount();
+    const activeAccount = getActiveAccount();
 
     if (!activeAccount) {
+      if (flags.json) {
+        this.error("No active account configured. Run 'cohe config' first.");
+        return;
+      }
       await this.renderApp(
         <Warning>
           No active account configured. Run "cohe config" first.
@@ -90,6 +119,23 @@ export default class Usage extends BaseCommand<typeof Usage> {
       apiKey: activeAccount.apiKey,
       groupId: activeAccount.groupId,
     });
+
+    // JSON output
+    if (flags.json) {
+      this.log(
+        JSON.stringify(
+          {
+            id: activeAccount.id,
+            name: activeAccount.name,
+            provider: provider.displayName,
+            ...usage,
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
 
     const verbose = flags.verbose;
 
