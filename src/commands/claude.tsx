@@ -40,13 +40,17 @@ export default class Claude extends BaseCommand<typeof Claude> {
       // v2 multi-account rotation
       if (accounts.length > 1) {
         const previousAccount = accountsConfig.getActiveAccount();
-        const newAccount = config.rotation.crossProvider
+        const rotationResult = config.rotation.crossProvider
           ? await accountsConfig.rotateAcrossProviders()
           : previousAccount?.provider
-            ? accountsConfig.rotateApiKey(previousAccount.provider)
-            : null;
+            ? {
+                account: accountsConfig.rotateApiKey(previousAccount.provider),
+                rotated: true,
+              }
+            : { account: null, rotated: false };
 
-        if (newAccount && newAccount.id !== previousAccount?.id) {
+        const newAccount = rotationResult.account;
+        if (rotationResult.rotated && newAccount) {
           this.log(
             `[auto-switch] ${previousAccount?.name || "none"} → ${newAccount.name} (${newAccount.provider})`
           );

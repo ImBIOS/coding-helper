@@ -23,13 +23,14 @@ export default class AutoRotate extends BaseCommand<typeof AutoRotate> {
   };
 
   async run(): Promise<void> {
-    const newAccount = await rotateAcrossProviders();
+    const { account: newAccount, rotated } = await rotateAcrossProviders();
 
     if (this.flags.json) {
       if (newAccount) {
         console.log(
           JSON.stringify({
             success: true,
+            rotated,
             account: {
               id: newAccount.id,
               name: newAccount.name,
@@ -55,7 +56,8 @@ export default class AutoRotate extends BaseCommand<typeof AutoRotate> {
       await this.renderApp(
         <Box>
           <Success>
-            Rotated to: {newAccount.name} ({newAccount.provider})
+            {rotated ? "Rotated to" : "Using"}: {newAccount.name} (
+            {newAccount.provider})
           </Success>
         </Box>
       );

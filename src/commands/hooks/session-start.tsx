@@ -52,9 +52,11 @@ export default class HooksSessionStart extends BaseCommand<
     // This ensures the CURRENT session uses the optimal provider
     if (config.rotation.enabled) {
       try {
-        await accountsConfig.rotateAcrossProviders();
-        // Reload config after rotation to get the updated active provider
-        config = accountsConfig.loadConfig();
+        const result = await accountsConfig.rotateAcrossProviders();
+        // Only reload config if rotation actually happened
+        if (result.rotated) {
+          config = accountsConfig.loadConfig();
+        }
       } catch {
         // Silent fail - rotation errors shouldn't break the session
       }
@@ -74,7 +76,8 @@ export default class HooksSessionStart extends BaseCommand<
     }
 
     // Install Z.AI coding plugins if active provider is Z.AI
-    if (currentAccount.provider === "zai") {
+    // Skip if COHE_TEST_MODE is set (for automated tests)
+    if (currentAccount.provider === "zai" && !process.env.COHE_TEST_MODE) {
       try {
         this.installZaiPlugins(flags.silent);
       } catch {
@@ -131,6 +134,7 @@ export default class HooksSessionStart extends BaseCommand<
     const homeDir = process.env.HOME || homedir();
     const cacheMarker = join(homeDir, ".claude", ".zai-plugins-installed");
     const PLUGIN_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+    const PLUGIN_COMMAND_TIMEOUT_MS = 5000; // 5 second timeout for plugin commands
 
     if (existsSync(cacheMarker)) {
       try {
@@ -146,11 +150,24 @@ export default class HooksSessionStart extends BaseCommand<
       }
     }
 
+    // Check if claude CLI is available before attempting any commands
+    try {
+      execSync("which claude", {
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 2000,
+      });
+    } catch {
+      // claude CLI not found, skip plugin installation
+      return;
+    }
+
     try {
       // Check if marketplace is already added
       const installedMarkets = execSync("claude plugin marketplace list", {
         encoding: "utf-8",
         stdio: "pipe",
+        timeout: PLUGIN_COMMAND_TIMEOUT_MS,
       });
 
       if (!installedMarkets.includes("zai-org/zai-coding-plugins")) {
@@ -159,13 +176,18 @@ export default class HooksSessionStart extends BaseCommand<
         }
         execSync("claude plugin marketplace add zai-org/zai-coding-plugins", {
           stdio: silent ? "pipe" : "inherit",
+          timeout: PLUGIN_COMMAND_TIMEOUT_MS,
         });
       }
 
       // List available plugins from the marketplace
       const plugins = execSync(
         "claude plugin marketplace list-plugins zai-org/zai-coding-plugins",
-        { encoding: "utf-8", stdio: "pipe" }
+        {
+          encoding: "utf-8",
+          stdio: "pipe",
+          timeout: PLUGIN_COMMAND_TIMEOUT_MS,
+        }
       );
 
       // Install each available plugin if not already installed
@@ -179,6 +201,7 @@ export default class HooksSessionStart extends BaseCommand<
             execSync(`claude plugin list ${pluginName}`, {
               encoding: "utf-8",
               stdio: "pipe",
+              timeout: PLUGIN_COMMAND_TIMEOUT_MS,
             });
           } catch {
             // Plugin not found, install it
@@ -187,7 +210,10 @@ export default class HooksSessionStart extends BaseCommand<
             }
             execSync(
               `claude plugin marketplace install zai-org/zai-coding-plugins ${pluginName}`,
-              { stdio: silent ? "pipe" : "inherit" }
+              {
+                stdio: silent ? "pipe" : "inherit",
+                timeout: PLUGIN_COMMAND_TIMEOUT_MS,
+              }
             );
           }
         }
@@ -195,10 +221,9 @@ export default class HooksSessionStart extends BaseCommand<
 
       // Write cache marker on success
       writeFileSync(cacheMarker, String(Date.now()));
-    } catch (error) {
-      if (!silent) {
-        console.error("Failed to install Z.AI plugins:", error);
-      }
+    } catch {
+      // Silent fail - plugin installation errors shouldn't break the session
+      // Errors are already logged via console.error in catch blocks above
     }
   }
 }

@@ -464,12 +464,17 @@ async function fetchAndUpdateUsage(account: AccountConfig): Promise<number> {
   return 0;
 }
 
-export async function rotateAcrossProviders(): Promise<AccountConfig | null> {
+export interface RotationResult {
+  account: AccountConfig | null;
+  rotated: boolean;
+}
+
+export async function rotateAcrossProviders(): Promise<RotationResult> {
   const config = loadConfig();
   const allAccounts = Object.values(config.accounts).filter((a) => a.isActive);
 
   if (allAccounts.length === 0) {
-    return null;
+    return { account: null, rotated: false };
   }
 
   const currentId = config.activeAccountId;
@@ -517,7 +522,8 @@ export async function rotateAcrossProviders(): Promise<AccountConfig | null> {
     }
   }
 
-  if (nextAccount && nextAccount.id !== currentId) {
+  const didRotate = nextAccount && nextAccount.id !== currentId;
+  if (didRotate) {
     config.activeAccountId = nextAccount.id;
     config.activeModelProviderId = nextAccount.id;
     config.activeMcpProviderId = nextAccount.id;
@@ -526,5 +532,5 @@ export async function rotateAcrossProviders(): Promise<AccountConfig | null> {
     saveConfig(config);
   }
 
-  return nextAccount;
+  return { account: nextAccount, rotated: didRotate };
 }

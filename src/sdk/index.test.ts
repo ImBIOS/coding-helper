@@ -49,7 +49,7 @@ describe("SDK Auto-Rotation", () => {
 
       expect(env).toHaveProperty("ANTHROPIC_AUTH_TOKEN");
       expect(env).toHaveProperty("ANTHROPIC_BASE_URL");
-      expect(env).toHaveProperty("ANTHROPIC_MODEL");
+      // ANTHROPIC_MODEL is NOT set - providers handle model translation
       expect(env).toHaveProperty("API_TIMEOUT_MS");
     });
 
@@ -68,8 +68,9 @@ describe("SDK Auto-Rotation", () => {
       if (credentials) {
         expect(credentials).toHaveProperty("apiKey");
         expect(credentials).toHaveProperty("baseUrl");
-        expect(credentials).toHaveProperty("model");
+        // model property is not returned - providers handle model translation
         expect(credentials).toHaveProperty("provider");
+        expect(credentials).toHaveProperty("accountName");
         expect(["zai", "minimax"]).toContain(credentials.provider);
       }
     });

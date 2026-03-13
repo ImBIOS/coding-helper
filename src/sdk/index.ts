@@ -78,16 +78,19 @@ export async function performAutoRotation(): Promise<RotationResult> {
   // If v2 accounts exist, use v2 rotation
   if (accounts.length > 1) {
     const previousAccount = accountsConfig.getActiveAccount();
-    const newAccount = config.rotation.crossProvider
+    const rotationResult = config.rotation.crossProvider
       ? await accountsConfig.rotateAcrossProviders()
       : previousAccount?.provider
-        ? accountsConfig.rotateApiKey(previousAccount.provider)
-        : null;
+        ? {
+            account: accountsConfig.rotateApiKey(previousAccount.provider),
+            rotated: true,
+          }
+        : { account: null, rotated: false };
 
-    const rotated = !!(newAccount && newAccount.id !== previousAccount?.id);
+    const newAccount = rotationResult.account;
 
     return {
-      rotated,
+      rotated: rotationResult.rotated,
       previousAccount: previousAccount?.name ?? null,
       currentAccount: newAccount?.name ?? previousAccount?.name ?? null,
       provider: newAccount?.provider ?? previousAccount?.provider ?? null,
