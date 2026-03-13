@@ -84,37 +84,45 @@ export class ZAIProvider implements Provider {
         return { used: 0, limit: 0, remaining: 0, percentUsed: 0 };
       }
 
-      // Handle TOKENS_LIMIT - it may only have percentage without usage/currentValue/remaining
-      // Fall back to using percentage to derive values when full data is missing
-      const modelUsage: UsageStats = tokenLimit
-        ? tokenLimit.currentValue !== undefined
-          ? {
-              used: tokenLimit.currentValue,
-              limit: tokenLimit.usage,
-              remaining: tokenLimit.remaining,
-              percentUsed: tokenLimit.percentage,
-            }
-          : {
-              used: 0,
-              limit: 0,
-              remaining: 0,
-              percentUsed: tokenLimit.percentage,
-            }
-        : { used: 0, limit: 0, remaining: 0, percentUsed: 0 };
-
-      // Handle TIME_LIMIT - always has full fields
+      // Handle TIME_LIMIT - always has full fields (minutes)
       const mcpUsage: UsageStats = timeLimit
         ? {
-            used: timeLimit.currentValue,
-            limit: timeLimit.usage,
-            remaining: timeLimit.remaining,
-            percentUsed: timeLimit.percentage,
+            used: timeLimit.currentValue ?? 0,
+            limit: timeLimit.usage ?? 0,
+            remaining: timeLimit.remaining ?? 0,
+            percentUsed: timeLimit.percentage ?? 0,
           }
         : { used: 0, limit: 0, remaining: 0, percentUsed: 0 };
 
-      // For overall usage, use model usage as primary (for backward compatibility)
+      // Handle TOKENS_LIMIT - may only have percentage and number (limit in tokens)
+      // number: 5 means 5 million tokens (unit=3 is millions)
+      let modelUsage: UsageStats;
+      if (tokenLimit) {
+        // unit: 3 = millions, so number is the limit in millions of tokens
+        const tokenLimit_ = tokenLimit.limit ?? tokenLimit.number * 1_000_000;
+        const tokenUsed = tokenLimit.percentage
+          ? Math.round((tokenLimit.percentage / 100) * tokenLimit_)
+          : 0;
+        modelUsage = {
+          used: tokenUsed,
+          limit: tokenLimit_,
+          remaining: tokenLimit_ - tokenUsed,
+          percentUsed: tokenLimit.percentage ?? 0,
+        };
+      } else {
+        modelUsage = { used: 0, limit: 0, remaining: 0, percentUsed: 0 };
+      }
+
+      // For overall usage, combine both (use the higher percentage)
+      const combinedPercent = Math.max(
+        modelUsage.percentUsed,
+        mcpUsage.percentUsed
+      );
       return {
-        ...modelUsage,
+        used: modelUsage.used + mcpUsage.used,
+        limit: modelUsage.limit + mcpUsage.limit,
+        remaining: modelUsage.remaining + mcpUsage.remaining,
+        percentUsed: combinedPercent,
         modelUsage,
         mcpUsage,
       };

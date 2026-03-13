@@ -114,30 +114,29 @@ function UsageUI({
   usage,
   verbose,
 }: UsageUIProps): React.ReactElement {
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) {
-      return "0 B";
-    }
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+  // Format number with K/M/B suffixes, no units
+  const formatNumber = (num: number): string => {
+    if (num === 0) return "0";
+    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1)}B`;
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
   };
 
   const data: Record<string, string> = {
     Provider: provider,
-    Used: formatBytes(usage.used),
-    Limit: formatBytes(usage.limit),
-    Remaining: formatBytes(usage.remaining),
+    Used: formatNumber(usage.used),
+    Limit: formatNumber(usage.limit),
+    Remaining: formatNumber(usage.remaining),
     "Percent Used": `${usage.percentUsed.toFixed(1)}%`,
   };
 
   if (verbose) {
     if (usage.modelUsage) {
-      data["Model Usage"] = formatBytes(usage.modelUsage.used);
+      data["Model Usage"] = formatNumber(usage.modelUsage.used);
     }
     if (usage.mcpUsage) {
-      data["MCP Usage"] = formatBytes(usage.mcpUsage.used);
+      data["MCP Usage"] = formatNumber(usage.mcpUsage.used);
     }
   }
 
@@ -166,12 +165,13 @@ function AccountUsageItem({
   provider: prov,
   usage,
 }: AccountUsageItemProps): React.ReactElement {
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+  // Format number with K/M/B suffixes, no units
+  const formatNumber = (num: number): string => {
+    if (num === 0) return "0";
+    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1)}B`;
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
   };
 
   return (
@@ -182,7 +182,7 @@ function AccountUsageItem({
       </Box>
       <Box>
         <Info>
-          {formatBytes(usage.used)} / {formatBytes(usage.limit)} (
+          {formatNumber(usage.used)} / {formatNumber(usage.limit)} (
           {usage.percentUsed.toFixed(1)}%)
         </Info>
       </Box>
