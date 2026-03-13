@@ -13,6 +13,7 @@ function runCli(args: string[], stdin?: string, cwd?: string) {
     input: stdin,
     timeout: 30_000,
     cwd,
+    env: { ...process.env, COHE_TEST_MODE: "1" },
     stdio: stdin ? ["pipe", "pipe", "pipe"] : undefined,
   });
 }

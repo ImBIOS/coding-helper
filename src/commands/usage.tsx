@@ -1,8 +1,7 @@
 import { Flags } from "@oclif/core";
 import { Box } from "ink";
 import type React from "react";
-// biome-ignore lint/performance/noNamespaceImport: Consistent with codebase pattern
-import * as settings from "../config/settings";
+import * as accountsConfig from "../config/accounts-config";
 import { BaseCommand } from "../oclif/base";
 import type { Provider, UsageStats } from "../providers/base";
 import { minimaxProvider } from "../providers/minimax";
@@ -19,6 +18,7 @@ export default class Usage extends BaseCommand<typeof Usage> {
   static examples = [
     "<%= config.bin %> usage",
     "<%= config.bin %> usage --verbose",
+    "<%= config.bin %> usage --all",
   ];
 
   static flags = {
@@ -26,24 +26,71 @@ export default class Usage extends BaseCommand<typeof Usage> {
       description: "Show detailed usage information",
       default: false,
     }),
+    all: Flags.boolean({
+      description: "Show usage for all accounts",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
     const { flags } = await this.parse(Usage);
-    const activeProvider = settings.getActiveProvider();
-    const provider = PROVIDERS[activeProvider]();
-    const config = provider.getConfig();
 
-    if (!config.apiKey) {
+    // Use v2 accounts config
+    const accounts = accountsConfig.listAccounts();
+
+    if (flags.all) {
+      // Fetch usage for all accounts
+      const accountsWithUsage = await Promise.all(
+        accounts.map(async (account) => {
+          const provider = PROVIDERS[account.provider]();
+          const usage = await provider.getUsage({
+            apiKey: account.apiKey,
+            groupId: account.groupId,
+          });
+          return { account, provider: provider.displayName, usage };
+        })
+      );
+
+      await this.renderApp(
+        <Box flexDirection="column">
+          <Section title="Usage for All Accounts">
+            {accountsWithUsage.map(
+              ({ account, provider: prov, usage: usg }) =>
+                usg && (
+                  <AccountUsageItem
+                    key={account.id}
+                    name={account.name}
+                    provider={prov}
+                    usage={usg}
+                  />
+                )
+            )}
+          </Section>
+        </Box>
+      );
+      return;
+    }
+
+    // Show usage for active account only
+    const activeAccount = accountsConfig.getActiveAccount();
+
+    if (!activeAccount) {
       await this.renderApp(
         <Warning>
-          {provider.displayName} is not configured. Run "cohe config" first.
+          No active account configured. Run "cohe config" first.
         </Warning>
       );
       return;
     }
 
-    const usage = await provider.getUsage();
+    const provider = PROVIDERS[activeAccount.provider]();
+
+    // Get usage for the active account
+    const usage = await provider.getUsage({
+      apiKey: activeAccount.apiKey,
+      groupId: activeAccount.groupId,
+    });
+
     const verbose = flags.verbose;
 
     await this.renderApp(
@@ -105,5 +152,40 @@ function UsageUI({
         </Info>
       </Box>
     </Section>
+  );
+}
+
+interface AccountUsageItemProps {
+  name: string;
+  provider: string;
+  usage: UsageStats;
+}
+
+function AccountUsageItem({
+  name,
+  provider: prov,
+  usage,
+}: AccountUsageItemProps): React.ReactElement {
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+  };
+
+  return (
+    <Box flexDirection="column" marginBottom={1}>
+      <Box>
+        <Info>{name}</Info>
+        <Info> ({prov})</Info>
+      </Box>
+      <Box>
+        <Info>
+          {formatBytes(usage.used)} / {formatBytes(usage.limit)} (
+          {usage.percentUsed.toFixed(1)}%)
+        </Info>
+      </Box>
+    </Box>
   );
 }
