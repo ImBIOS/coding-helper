@@ -104,7 +104,7 @@ export const DEFAULT_CONFIG: COHEConfig = {
   },
   rotation: {
     enabled: true,
-    strategy: "least-used",
+    strategy: "priority",
     crossProvider: true,
   },
 };
@@ -516,14 +516,47 @@ export async function rotateAcrossProviders(): Promise<RotationResult> {
     }
 
     case "priority": {
+      // Priority-based selection: use highest priority account that has quota available
+      // Sort by priority (highest first), then find first with available quota
       const sorted = allAccounts.sort((a, b) => b.priority - a.priority);
-      nextAccount = sorted[0];
+
+      // Check if current account still has quota - if so, don't rotate
+      if (currentId) {
+        const current = sorted.find((a) => a.id === currentId);
+        if (current && current.usage) {
+          const percentUsed =
+            current.usage.limit > 0
+              ? (current.usage.used / current.usage.limit) * 100
+              : 0;
+          // Only rotate if current is exhausted (>95% used) or has no usage data
+          if (percentUsed < 95) {
+            nextAccount = current;
+            break;
+          }
+        } else {
+          // No usage data yet - use highest priority account
+          nextAccount = sorted[0];
+          break;
+        }
+      }
+
+      // Current account is exhausted or none active - find next available
+      for (const account of sorted) {
+        const percentUsed =
+          account.usage && account.usage.limit > 0
+            ? (account.usage.used / account.usage.limit) * 100
+            : 0;
+        if (percentUsed < 95) {
+          nextAccount = account;
+          break;
+        }
+      }
       break;
     }
   }
 
-  const didRotate = nextAccount && nextAccount.id !== currentId;
-  if (didRotate) {
+  const didRotate = nextAccount !== null && nextAccount.id !== currentId;
+  if (didRotate && nextAccount) {
     config.activeAccountId = nextAccount.id;
     config.activeModelProviderId = nextAccount.id;
     config.activeMcpProviderId = nextAccount.id;
