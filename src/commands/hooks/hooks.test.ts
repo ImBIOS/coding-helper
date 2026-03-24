@@ -30,62 +30,7 @@ describe("cohe hooks - Claude Code Hook Integration Tests", () => {
   });
 
   //==========================================================================
-  // Test 1: cohe notify (Notification hook)
-  //==========================================================================
-
-  describe("cohe notify - Notification Hook", () => {
-    test("should use default message when no stdin provided", () => {
-      const result = runCli(["notify"], "{}");
-      expect([0, null]).toContain(result.status);
-    });
-
-    test("should read transcript_path from stdin JSON", () => {
-      const transcriptPath = path.join(TEST_DIR, "transcript.jsonl");
-      const transcriptContent = [
-        JSON.stringify({ role: "user", content: "Fix the bug" }),
-      ].join("\n");
-      fs.writeFileSync(transcriptPath, transcriptContent);
-
-      const stdin = JSON.stringify({ transcript_path: transcriptPath });
-      const result = runCli(["notify"], stdin);
-      expect([0, null]).toContain(result.status);
-    });
-
-    test("should handle missing transcript file gracefully", () => {
-      const stdin = JSON.stringify({
-        transcript_path: "/nonexistent/path/transcript.jsonl",
-      });
-      const result = runCli(["notify"], stdin);
-      expect([0, null]).toContain(result.status);
-    });
-
-    test("should extract message from new transcript format", () => {
-      const transcriptPath = path.join(TEST_DIR, "transcript-new.jsonl");
-      const transcriptContent = [
-        JSON.stringify({
-          message: { role: "user", content: "Refactor auth" },
-        }),
-      ].join("\n");
-      fs.writeFileSync(transcriptPath, transcriptContent);
-
-      const stdin = JSON.stringify({ transcript_path: transcriptPath });
-      const result = runCli(["notify"], stdin);
-      expect([0, null]).toContain(result.status);
-    });
-
-    test("should handle custom --message flag", () => {
-      const result = runCli(["notify", "--message", "Custom"]);
-      expect([0, null]).toContain(result.status);
-    });
-
-    test("should handle invalid JSON stdin gracefully", () => {
-      const result = runCli(["notify"], "not valid json");
-      expect([0, null]).toContain(result.status);
-    });
-  });
-
-  //==========================================================================
-  // Test 2: cohe hooks post-tool (PostToolUse hook)
+  // Test 1: cohe hooks post-tool (PostToolUse hook)
   //==========================================================================
 
   describe("cohe hooks post-tool - PostToolUse Hook", () => {
@@ -166,7 +111,7 @@ describe("cohe hooks - Claude Code Hook Integration Tests", () => {
   });
 
   //==========================================================================
-  // Test 3: cohe hooks stop (Stop hook)
+  // Test 2: cohe hooks stop (Stop hook)
   //==========================================================================
 
   describe("cohe hooks stop - Stop Hook", () => {
@@ -320,7 +265,7 @@ describe("cohe hooks - Claude Code Hook Integration Tests", () => {
   });
 
   //==========================================================================
-  // Test 4: cohe auto hook (SessionStart hook)
+  // Test 3: cohe auto hook (SessionStart hook)
   //==========================================================================
 
   describe("cohe auto hook - SessionStart Hook", () => {
@@ -433,29 +378,6 @@ describe("cohe hooks - Claude Code Hook Integration Tests", () => {
       expect([0, null]).toContain(result.status);
     });
 
-    test("Notification hook with all notification types", () => {
-      const notificationTypes = [
-        "permission_prompt",
-        "idle_prompt",
-        "auth_success",
-        "elicitation_dialog",
-      ];
-
-      for (const notificationType of notificationTypes) {
-        const input = {
-          session_id: "test-session",
-          transcript_path: "/test/transcript.jsonl",
-          hook_event_name: "Notification",
-          notification_type: notificationType,
-          message: `Test: ${notificationType}`,
-          title: "Claude Code",
-        };
-
-        const result = runCli(["notify", "--silent"], JSON.stringify(input));
-        expect([0, null]).toContain(result.status);
-      }
-    });
-
     test("All hooks should handle edge cases gracefully", () => {
       // Empty stdin
       let result = runCli(["hooks", "post-tool", "--silent"], "");
@@ -463,13 +385,6 @@ describe("cohe hooks - Claude Code Hook Integration Tests", () => {
 
       // Empty JSON with --no-commit to avoid slow commit
       result = runCli(["hooks", "stop", "--silent", "--no-commit"], "{}");
-      expect(result.status).toBeDefined();
-
-      // Null values
-      result = runCli(
-        ["notify", "--silent"],
-        JSON.stringify({ transcript_path: null })
-      );
       expect(result.status).toBeDefined();
     });
   });

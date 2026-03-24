@@ -28,16 +28,11 @@ interface ClaudeSettings {
  * All hook events and command patterns that cohe manages.
  * Used to detect and remove our hooks from settings.json.
  */
-const COHE_HOOK_EVENTS = [
-  "SessionStart",
-  "Notification",
-  "PostToolUse",
-  "Stop",
-] as const;
+const COHE_HOOK_EVENTS = ["SessionStart", "PostToolUse", "Stop"] as const;
 
 /** Matches any cohe hook command (current and legacy) */
 const COHE_COMMAND_PATTERN =
-  /hooks session-start|hooks notification|hooks notify|hooks post-tool|hooks stop|auto hook|auto-rotate\.sh|cohe notify/;
+  /hooks session-start|hooks post-tool|hooks stop|auto hook|auto-rotate\.sh/;
 
 export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
   static description = "Remove all Claude Code hooks";
@@ -161,9 +156,14 @@ export default class HooksUninstall extends BaseCommand<typeof HooksUninstall> {
             )}
             <Box flexDirection="column" marginTop={1}>
               <Info>
-                Auto-rotation, formatting, notifications, and commit prompts are
-                no longer automatic.
+                Auto-rotation, formatting, and commit prompts are no longer
+                automatic.
               </Info>
+              <Box marginTop={1}>
+                <Text dimColor>
+                  For notifications, use <Text bold>peon-ping</Text> instead.
+                </Text>
+              </Box>
               <Info>To re-enable hooks, run "cohe hooks install".</Info>
             </Box>
           </Box>

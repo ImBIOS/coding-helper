@@ -31,7 +31,7 @@ export async function handleHooksSetup(): Promise<void> {
   // Hook commands - using cohe CLI directly for auto-updates
   const sessionStartCommand = "cohe auto hook --silent";
   const postToolCommand = "cohe hooks post-tool --silent";
-  const stopCommand = "cohe hooks stop"; // No --silent to enable notifications and sounds
+  const stopCommand = "cohe hooks stop"; // No --silent to enable sounds
 
   try {
     // Read existing settings or create new
@@ -109,7 +109,7 @@ export async function handleHooksSetup(): Promise<void> {
       hooksInstalled++;
     }
 
-    // Install Stop hook (notifications)
+    // Install Stop hook (commit prompt)
     if (!settings.hooks.Stop) {
       settings.hooks.Stop = [];
     }
@@ -147,7 +147,9 @@ export async function handleHooksSetup(): Promise<void> {
     info("Installed hooks:");
     info("  • SessionStart: Auto-rotate API keys on startup");
     info("  • PostToolUse: Format files after Write|Edit");
-    info("  • Stop: Notifications + commit prompt on session end");
+    info("  • Stop: Commit prompt on session end");
+    info("");
+    info("For notifications, we recommend peon-ping.");
     info("");
     info(
       "Uses the cohe CLI directly, so all hooks auto-update with the package."
@@ -259,8 +261,9 @@ export async function handleHooksUninstall(): Promise<void> {
 
     info("");
     info(
-      "Auto-rotation, formatting, and notifications are no longer automatic."
+      "Auto-rotation, formatting, and commit prompts are no longer automatic."
     );
+    info("For notifications, use peon-ping instead.");
     info("To re-enable hooks, run 'cohe hooks setup'.");
   } catch (err: any) {
     section("Hooks Uninstall");
@@ -302,7 +305,7 @@ export async function handleHooksStatus(): Promise<void> {
       name: "Stop",
       command: "cohe hooks stop",
       registered: false,
-      hookType: "notify",
+      hookType: "commit",
     },
   ];
 
@@ -370,7 +373,7 @@ export async function handleHooksStatus(): Promise<void> {
     const typeLabel = {
       "auto-rotate": "Auto-rotate",
       format: "Format files",
-      notify: "Notifications",
+      commit: "Commit prompt",
     }[hook.hookType];
     console.log(`  ${status} ${hook.name}: ${typeLabel}`);
     if (hook.registered) {

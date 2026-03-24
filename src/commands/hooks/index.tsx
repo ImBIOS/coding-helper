@@ -37,7 +37,12 @@ export default class HooksIndex extends BaseCommand<typeof HooksIndex> {
         </Box>
         <Box marginTop={1}>
           <Text dimColor>
-            Hooks enable auto-rotation, formatting, and session notifications.
+            Hooks enable auto-rotation, formatting, and commit prompts.
+          </Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>
+            For notifications, we recommend <Text bold>peon-ping</Text> instead.
           </Text>
         </Box>
       </Box>

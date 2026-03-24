@@ -44,7 +44,7 @@ function checkHooksInstalled(): HookCheckResult[] {
     },
     {
       name: "Stop",
-      description: "Notifications on session end",
+      description: "Commit prompt on session end",
       installed: false,
     },
   ];
@@ -90,12 +90,16 @@ export default class Doctor extends BaseCommand<typeof Doctor> {
     const config = provider.getConfig();
     const configPath = settings.getConfigPath();
     const hooksStatus = checkHooksInstalled();
+    const peonInstalled = existsSync(
+      path.join(os.homedir(), ".claude", "hooks", "peon-ping", "peon.sh")
+    );
 
     await this.renderApp(
       <DoctorUI
         config={config}
         configPath={configPath}
         hooksStatus={hooksStatus}
+        peonInstalled={peonInstalled}
         provider={provider}
       />
     );
@@ -107,6 +111,7 @@ interface DoctorUIProps {
   config: ReturnType<Provider["getConfig"]>;
   configPath: string;
   hooksStatus: HookCheckResult[];
+  peonInstalled: boolean;
 }
 
 interface CheckResult {
@@ -120,6 +125,7 @@ function DoctorUI({
   config,
   configPath,
   hooksStatus,
+  peonInstalled,
 }: DoctorUIProps): React.ReactElement {
   const { exit } = useApp();
   const [running, setRunning] = useState(true);
@@ -199,6 +205,19 @@ function DoctorUI({
                 <Info>Run "cohe hooks setup" to install missing hooks.</Info>
               </Box>
             )}
+            <Box marginTop={1}>
+              <Text dimColor>
+                For notifications:{" "}
+                {peonInstalled ? (
+                  <Text>peon-ping is installed</Text>
+                ) : (
+                  <Text>
+                    We recommend <Text bold>peon-ping</Text> for desktop
+                    notifications.
+                  </Text>
+                )}
+              </Text>
+            </Box>
 
             {issues.length > 0 ? (
               <Box flexDirection="column" marginTop={1}>

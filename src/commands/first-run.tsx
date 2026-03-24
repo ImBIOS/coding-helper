@@ -208,7 +208,7 @@ function FirstRunUI(): React.ReactElement {
       const claudeSettingsPath = path.join(os.homedir(), ".claude");
       const settingsFilePath = path.join(claudeSettingsPath, "settings.json");
       const hookCommand = "cohe auto hook --silent";
-      const notifyCommand = "cohe notify";
+      const stopCommand = "cohe hooks stop";
 
       // Read or create settings
       let settingsData: any = {};
@@ -256,39 +256,15 @@ function FirstRunUI(): React.ReactElement {
           h.hooks.some(
             (hook: any) =>
               hook.type === "command" &&
-              (hook.command === notifyCommand ||
-                hook.command?.includes("cohe notify"))
+              (hook.command === stopCommand ||
+                hook.command?.includes("hooks stop"))
           )
       );
 
       if (!stopExists) {
         settingsData.hooks.Stop.push({
-          hooks: [{ type: "command", command: notifyCommand }],
+          hooks: [{ type: "command", command: stopCommand }],
         });
-      }
-
-      // Add Notification hooks
-      if (!settingsData.hooks.Notification) {
-        settingsData.hooks.Notification = [];
-      }
-
-      const notificationTypes = [
-        "permission_prompt",
-        "idle_prompt",
-        "auth_success",
-        "elicitation_dialog",
-      ];
-
-      for (const notificationType of notificationTypes) {
-        const existing = settingsData.hooks.Notification.find(
-          (h: any) => h.matcher === notificationType
-        );
-        if (!existing) {
-          settingsData.hooks.Notification.push({
-            matcher: notificationType,
-            hooks: [{ type: "command", command: notifyCommand }],
-          });
-        }
       }
 
       // Set environment variables
@@ -436,12 +412,7 @@ function FirstRunUI(): React.ReactElement {
               <Text>• Auto-rotation of API keys on session start</Text>
             </Box>
             <Box marginLeft={2}>
-              <Text>
-                • Notifications for session events (permission prompts,
-              </Text>
-            </Box>
-            <Box marginLeft={4}>
-              <Text>idle prompts, auth success, elicitation dialog)</Text>
+              <Text>• Commit prompt on session end</Text>
             </Box>
             <Box marginLeft={2}>
               <Text>• Z.AI plugin installation (for Z.AI provider)</Text>

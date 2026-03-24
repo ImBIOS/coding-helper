@@ -17,7 +17,6 @@ interface HookGroup {
 
 interface HooksConfig {
   SessionStart?: HookGroup[];
-  Notification?: HookGroup[];
   PostToolUse?: HookGroup[];
   Stop?: HookGroup[];
   [key: string]: HookGroup[] | undefined;
@@ -47,13 +46,6 @@ const COHE_HOOKS: Array<{
     detectPattern: "hooks session-start|auto hook",
   },
   {
-    event: "Notification",
-    matcher: "permission_prompt|idle_prompt|elicitation_dialog",
-    command: "cohe hooks notification",
-    description: "Desktop notifications for prompts and dialogs",
-    detectPattern: "hooks notification|hooks notify|cohe notify",
-  },
-  {
     event: "PostToolUse",
     matcher: "Write|Edit",
     command: "cohe hooks post-tool --silent",
@@ -63,7 +55,7 @@ const COHE_HOOKS: Array<{
   {
     event: "Stop",
     command: "cohe hooks stop",
-    description: "Notifications + commit prompt on session end",
+    description: "Commit prompt on session end",
     detectPattern: "hooks stop",
   },
 ];
@@ -149,6 +141,12 @@ export default class HooksInstall extends BaseCommand<typeof HooksInstall> {
                   </Text>
                 </Box>
               ))}
+              <Box marginTop={1}>
+                <Text dimColor>
+                  For notifications, we recommend <Text bold>peon-ping</Text>{" "}
+                  instead.
+                </Text>
+              </Box>
             </Box>
             <Box marginTop={1}>
               <Info>
