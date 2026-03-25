@@ -104,7 +104,7 @@ export const DEFAULT_CONFIG: COHEConfig = {
   },
   rotation: {
     enabled: true,
-    strategy: "priority",
+    strategy: "least-used",
     crossProvider: true,
   },
 };
