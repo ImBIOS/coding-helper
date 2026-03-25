@@ -524,12 +524,8 @@ export async function rotateAcrossProviders(): Promise<RotationResult> {
       if (currentId) {
         const current = sorted.find((a) => a.id === currentId);
         if (current && current.usage) {
-          const percentUsed =
-            current.usage.limit > 0
-              ? (current.usage.used / current.usage.limit) * 100
-              : 0;
-          // Only rotate if current is exhausted (>95% used) or has no usage data
-          if (percentUsed < 95) {
+          // Keep current until 100% exhausted
+          if (current.usage.used < current.usage.limit) {
             nextAccount = current;
             break;
           }
@@ -542,11 +538,7 @@ export async function rotateAcrossProviders(): Promise<RotationResult> {
 
       // Current account is exhausted or none active - find next available
       for (const account of sorted) {
-        const percentUsed =
-          account.usage && account.usage.limit > 0
-            ? (account.usage.used / account.usage.limit) * 100
-            : 0;
-        if (percentUsed < 95) {
+        if (!account.usage || account.usage.used < account.usage.limit) {
           nextAccount = account;
           break;
         }
